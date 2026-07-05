@@ -2,6 +2,8 @@
 'use strict';
 (() => {
 const $ = s => document.querySelector(s);
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || location.search.includes('touch=1');
+window.IS_TOUCH = IS_TOUCH;
 const { DETECTORS, DETECTOR_ORDER, TOOLS, PERMITS, ITEMS, BUCKET, SITES, SITE_ORDER, MISSIONS, DIALOGUE } = DATA;
 
 /* ================= STATE ================= */
@@ -445,7 +447,7 @@ function trip(){ return { site: SITES[state.location] }; }
 function initRenderer(){
   if(renderer) return;
   renderer = new THREE.WebGLRenderer({ canvas: $('#gl'), antialias:true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+  renderer.setPixelRatio(Math.min(IS_TOUCH ? 1.6 : 2, window.devicePixelRatio||1));
   clock = new THREE.Clock();
   window.addEventListener('resize', sizeRenderer);
   sizeRenderer();
@@ -514,6 +516,7 @@ function enterField(){
   else missionEl.hidden = true;
   show('field');
   $('#hud').hidden = false;
+  $('#touchui').hidden = !IS_TOUCH;
   pauseTitle('READY', site.desc + (permissionActive? '' : ' — You need permission first: walk to the farmhouse and knock (E at the door).'));
   running = true;
   AUDIO.ambient(site.terrain==='beach'? 0.05 : 0.015);
@@ -573,7 +576,7 @@ const glCanvas = $('#gl');
 $('#btnResume').addEventListener('click', ()=>{
   AUDIO.resume();
   $('#fieldPause').hidden = true;
-  glCanvas.requestPointerLock?.();
+  if(!IS_TOUCH) glCanvas.requestPointerLock?.();
   locked = true; // optimistic; fallback drag-look also works
 });
 document.addEventListener('pointerlockchange', ()=>{
@@ -1275,10 +1278,12 @@ function animate(){
     if(!boxing && (keys.KeyS||keys.ArrowDown)) mz+=1;
     if(!boxing && (keys.KeyA||keys.ArrowLeft)) mx-=1;
     if(!boxing && (keys.KeyD||keys.ArrowRight)) mx+=1;
-    const mv = Math.hypot(mx,mz);
-    if(mv>0){
+    if(!boxing && touchMove.active){ mx += touchMove.x; mz += touchMove.y; }
+    let mv = Math.hypot(mx,mz);
+    if(mv>1){ mx/=mv; mz/=mv; mv=1; }
+    if(mv>0.06){
       mx/=mv; mz/=mv;
-      let speed = 4.4;
+      let speed = 4.4*mv;
       // soft ground
       if(site.soft==='drysand' && player.z>8) speed = 3.0;
       if(site.soft==='plough' && player.x>10) speed = 2.6;
@@ -1370,8 +1375,8 @@ function animate(){
         const d = world.interactives.farmhouseDoor;
         hint.innerHTML = d && Math.hypot(player.x-d.x,player.z-d.z)<5 ? '<b>E</b> knock on the door' : 'Find the farmhouse and knock before detecting';
       }
-      else if(diggableTarget()) hint.innerHTML = '<b>E</b> dig this target &nbsp; <b>SHIFT</b> pinpoint';
-      else if(player.stamina<20) hint.innerHTML = 'Running on empty — <b>R</b> to eat, or <b>H</b> to head home';
+      else if(diggableTarget()) hint.innerHTML = IS_TOUCH? 'Tap <b>DIG</b> — hold <b>PIN·PT</b> to narrow it down' : '<b>E</b> dig this target &nbsp; <b>SHIFT</b> pinpoint';
+      else if(player.stamina<20) hint.innerHTML = IS_TOUCH? 'Running on empty — tap <b>EAT</b>, or pause to head home' : 'Running on empty — <b>R</b> to eat, or <b>H</b> to head home';
       else hint.textContent = '';
     }
   } else {
@@ -1407,6 +1412,81 @@ function teardownField(){
   scene=null; world=null; npc=null; bird=null; snakeObj=null; targets=[]; coilShadow=null; coilGap=0;
   $('#hud').hidden = true;
 }
+
+/* ================= TOUCH CONTROLS ================= */
+const touchMove = { active:false, id:null, x:0, y:0, baseX:0, baseY:0 };
+let lookTouchId = null, lookLast = null;
+if(IS_TOUCH){
+  document.body.classList.add('touch');
+  document.addEventListener('touchstart', ()=>AUDIO.resume(), { once:true });
+  const fieldEl = $('#field');
+  const stickBase = $('#stickBase'), stickKnob = $('#stickKnob');
+  function resetStick(){
+    touchMove.active = false; touchMove.x = 0; touchMove.y = 0; touchMove.id = null;
+    stickKnob.style.transform = 'translate(-50%,-50%)';
+    stickBase.style.left = '24px'; stickBase.style.top = 'auto'; stickBase.style.bottom = '26px';
+  }
+  fieldEl.addEventListener('touchstart', e=>{
+    if(!running || !$('#fieldPause').hidden) return;
+    for(const t of e.changedTouches){
+      const onButton = t.target.closest && t.target.closest('button');
+      if(onButton) continue;
+      if(t.clientX < innerWidth*0.45 && t.clientY > innerHeight*0.35 && !touchMove.active){
+        touchMove.active = true; touchMove.id = t.identifier;
+        touchMove.baseX = t.clientX; touchMove.baseY = t.clientY;
+        stickBase.style.left = (t.clientX-59)+'px'; stickBase.style.top = (t.clientY-59)+'px'; stickBase.style.bottom = 'auto';
+      } else if(lookTouchId === null){
+        lookTouchId = t.identifier; lookLast = { x:t.clientX, y:t.clientY };
+      }
+    }
+  }, { passive:true });
+  fieldEl.addEventListener('touchmove', e=>{
+    if(!running) return;
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(touchMove.active && t.identifier === touchMove.id){
+        let dx = t.clientX - touchMove.baseX, dy = t.clientY - touchMove.baseY;
+        const d = Math.hypot(dx,dy), R = 52;
+        if(d > R){ dx *= R/d; dy *= R/d; }
+        touchMove.x = dx/R; touchMove.y = dy/R;
+        stickKnob.style.transform = 'translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px))';
+      } else if(t.identifier === lookTouchId){
+        yaw -= (t.clientX - lookLast.x)*0.0046;
+        pitch -= (t.clientY - lookLast.y)*0.0036;
+        pitch = Math.max(-1.25, Math.min(0.6, pitch));
+        lookLast = { x:t.clientX, y:t.clientY };
+      }
+    }
+  }, { passive:false });
+  const endTouch = e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier === touchMove.id) resetStick();
+      if(t.identifier === lookTouchId){ lookTouchId = null; lookLast = null; }
+    }
+  };
+  fieldEl.addEventListener('touchend', endTouch);
+  fieldEl.addEventListener('touchcancel', endTouch);
+  // action buttons
+  const guardOk = () => running && $('#fieldPause').hidden &&
+    $('#modal').hidden && $('#digModal').hidden && $('#findModal').hidden && $('#resultsModal').hidden && !boxing;
+  $('#tbDig').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) tryInteract(); });
+  $('#tbPP').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) pinpoint = true; });
+  for(const ev of ['pointerup','pointercancel','pointerleave'])
+    $('#tbPP').addEventListener(ev, ()=>{ pinpoint = false; });
+  $('#tbEat').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) eat(); });
+  $('#tbPause').addEventListener('pointerdown', e=>{ e.preventDefault();
+    if(running && $('#fieldPause').hidden) pauseTitle('PAUSED','Have a breather. Pack up from here if you\u2019re done.'); });
+  // swap keyboard copy for touch copy
+  document.querySelectorAll('.title-controls').forEach(el=>{
+    el.innerHTML = '<span><b>LEFT THUMB</b> move</span><span><b>RIGHT THUMB</b> look (coil swings itself)</span><span><b>DIG</b> when you hear a signal</span>';
+  });
+  $('#btnResume').textContent = 'TAP TO DETECT';
+}
+// tappable boxing choices (work with mouse too)
+document.querySelectorAll('.box-keys .bk').forEach(b=>{
+  b.addEventListener('pointerdown', e=>{ e.preventDefault();
+    if(boxing && boxing.phase==='telegraph'){ boxing.picked = b.dataset.pick; updateBoxHud(); } });
+});
 
 /* ================= WIRING ================= */
 $('#btnGo').addEventListener('click', ()=>{

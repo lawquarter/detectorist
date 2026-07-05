@@ -300,3 +300,31 @@ button{ font-family:var(--disp); }
   .lcd-id{ font-size:34px; }
   .hud-mid{ gap:12px; padding:5px 10px; } .stambar .bar{ width:80px; }
 }
+
+/* ---------- touch controls ---------- */
+#field{ touch-action:none; }
+body{ overscroll-behavior:none; }
+.camp-tabs{ overflow-x:auto; }
+#touchui{ position:absolute; inset:0; pointer-events:none; }
+#stickBase{ position:absolute; left:24px; bottom:26px; width:118px; height:118px; border-radius:50%;
+  background:rgba(12,9,4,0.3); border:1.5px solid #ffffff2c; }
+#stickKnob{ position:absolute; left:50%; top:50%; width:52px; height:52px; border-radius:50%;
+  background:rgba(233,224,200,0.42); border:1px solid #ffffff55; transform:translate(-50%,-50%); }
+.tbtns{ position:absolute; right:14px; bottom:26px; display:flex; flex-direction:column; gap:12px; align-items:flex-end; }
+.tbtns button{ pointer-events:auto; border-radius:50%; border:1.5px solid #ffffff33; color:var(--bone);
+  background:rgba(12,9,4,0.5); font-family:var(--disp); letter-spacing:0.06em; font-size:12px; font-weight:700;
+  width:60px; height:60px; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+#tbDig{ width:82px; height:82px; background:var(--brass); color:#241a06; font-size:17px; border-color:#8a6f1a; }
+#tbPause{ position:absolute; top:60px; right:12px; pointer-events:auto; width:40px; height:40px; border-radius:8px;
+  background:rgba(12,9,4,0.5); border:1px solid #ffffff33; color:var(--bone); font-size:13px; }
+.box-keys .bk{ pointer-events:auto; background:#241a0e; border:1px solid #4d3f26; color:var(--bone);
+  border-radius:4px; padding:8px 14px; margin:0 4px; font-family:var(--disp); letter-spacing:0.08em; font-size:13px; }
+.box-keys .bk b{ color:var(--brass-hi); font-family:var(--mono); }
+body.touch .detpanel{ width:186px; right:112px; }
+body.touch #boxhud{ bottom:130px; }
+@media (max-width:720px){
+  body.touch .tbtns{ bottom:160px; }
+  body.touch .detpanel{ width:170px; right:110px; bottom:8px; }
+  body.touch .lcd-id{ font-size:30px; }
+  .hud-mission{ display:none; }
+}

@@ -640,7 +640,7 @@ function terrainPreset(site, rng){
 
 // ---------- near-field grass ring (dense, follows the player) ----------
 function makeNearGrass(scene, heightAt, colA, colB, rngSeedBase, count){
-  const COUNT = count||4600, CELL = 10;
+  const COUNT = Math.round((count||4600) * (window.IS_TOUCH ? 0.55 : 1)), CELL = 10;
   const geo = new THREE.ConeGeometry(0.018, 1, 3);
   geo.translate(0, 0.5, 0);
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });

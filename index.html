@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <style>
 /* ============ THE DETECTORIST — FIELD-KIT UI ============ */
 /* Single committed theme: night-before-the-dig loam & brass. */
@@ -303,6 +304,34 @@ button{ font-family:var(--disp); }
   .lcd-id{ font-size:34px; }
   .hud-mid{ gap:12px; padding:5px 10px; } .stambar .bar{ width:80px; }
 }
+
+/* ---------- touch controls ---------- */
+#field{ touch-action:none; }
+body{ overscroll-behavior:none; }
+.camp-tabs{ overflow-x:auto; }
+#touchui{ position:absolute; inset:0; pointer-events:none; }
+#stickBase{ position:absolute; left:24px; bottom:26px; width:118px; height:118px; border-radius:50%;
+  background:rgba(12,9,4,0.3); border:1.5px solid #ffffff2c; }
+#stickKnob{ position:absolute; left:50%; top:50%; width:52px; height:52px; border-radius:50%;
+  background:rgba(233,224,200,0.42); border:1px solid #ffffff55; transform:translate(-50%,-50%); }
+.tbtns{ position:absolute; right:14px; bottom:26px; display:flex; flex-direction:column; gap:12px; align-items:flex-end; }
+.tbtns button{ pointer-events:auto; border-radius:50%; border:1.5px solid #ffffff33; color:var(--bone);
+  background:rgba(12,9,4,0.5); font-family:var(--disp); letter-spacing:0.06em; font-size:12px; font-weight:700;
+  width:60px; height:60px; -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+#tbDig{ width:82px; height:82px; background:var(--brass); color:#241a06; font-size:17px; border-color:#8a6f1a; }
+#tbPause{ position:absolute; top:60px; right:12px; pointer-events:auto; width:40px; height:40px; border-radius:8px;
+  background:rgba(12,9,4,0.5); border:1px solid #ffffff33; color:var(--bone); font-size:13px; }
+.box-keys .bk{ pointer-events:auto; background:#241a0e; border:1px solid #4d3f26; color:var(--bone);
+  border-radius:4px; padding:8px 14px; margin:0 4px; font-family:var(--disp); letter-spacing:0.08em; font-size:13px; }
+.box-keys .bk b{ color:var(--brass-hi); font-family:var(--mono); }
+body.touch .detpanel{ width:186px; right:112px; }
+body.touch #boxhud{ bottom:130px; }
+@media (max-width:720px){
+  body.touch .tbtns{ bottom:160px; }
+  body.touch .detpanel{ width:170px; right:110px; bottom:8px; }
+  body.touch .lcd-id{ font-size:30px; }
+  .hud-mission{ display:none; }
+}
 </style>
 <title>The Detectorist — a metal detecting adventure</title>
 
@@ -425,7 +454,20 @@ button{ font-family:var(--disp); }
 
     <div id="boxhud" hidden>
       <div class="box-row"><span id="boxYou"></span><span id="boxCue"></span><span id="boxHer"></span></div>
-      <div class="box-keys"><b>1</b> JAB &nbsp; <b>2</b> BLOCK &nbsp; <b>3</b> DUCK</div>
+      <div class="box-keys">
+        <button class="bk" data-pick="jab"><b>1</b> JAB</button>
+        <button class="bk" data-pick="block"><b>2</b> BLOCK</button>
+        <button class="bk" data-pick="duck"><b>3</b> DUCK</button>
+      </div>
+    </div>
+    <div id="touchui" hidden>
+      <div id="stickBase"><div id="stickKnob"></div></div>
+      <div class="tbtns">
+        <button id="tbEat">EAT</button>
+        <button id="tbPP">PIN·PT</button>
+        <button id="tbDig">DIG</button>
+      </div>
+      <button id="tbPause">❚❚</button>
     </div>
     <div id="hint" class="hint"></div>
     <div id="flash"></div>
@@ -1490,7 +1532,7 @@ function terrainPreset(site, rng){
 
 // ---------- near-field grass ring (dense, follows the player) ----------
 function makeNearGrass(scene, heightAt, colA, colB, rngSeedBase, count){
-  const COUNT = count||4600, CELL = 10;
+  const COUNT = Math.round((count||4600) * (window.IS_TOUCH ? 0.55 : 1)), CELL = 10;
   const geo = new THREE.ConeGeometry(0.018, 1, 3);
   geo.translate(0, 0.5, 0);
   const mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
@@ -1932,6 +1974,8 @@ return { buildSite, makePerson, makeMagpie, makeSeagull, makeSnake, makeDetector
 'use strict';
 (() => {
 const $ = s => document.querySelector(s);
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || location.search.includes('touch=1');
+window.IS_TOUCH = IS_TOUCH;
 const { DETECTORS, DETECTOR_ORDER, TOOLS, PERMITS, ITEMS, BUCKET, SITES, SITE_ORDER, MISSIONS, DIALOGUE } = DATA;
 
 /* ================= STATE ================= */
@@ -2375,7 +2419,7 @@ function trip(){ return { site: SITES[state.location] }; }
 function initRenderer(){
   if(renderer) return;
   renderer = new THREE.WebGLRenderer({ canvas: $('#gl'), antialias:true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+  renderer.setPixelRatio(Math.min(IS_TOUCH ? 1.6 : 2, window.devicePixelRatio||1));
   clock = new THREE.Clock();
   window.addEventListener('resize', sizeRenderer);
   sizeRenderer();
@@ -2444,6 +2488,7 @@ function enterField(){
   else missionEl.hidden = true;
   show('field');
   $('#hud').hidden = false;
+  $('#touchui').hidden = !IS_TOUCH;
   pauseTitle('READY', site.desc + (permissionActive? '' : ' — You need permission first: walk to the farmhouse and knock (E at the door).'));
   running = true;
   AUDIO.ambient(site.terrain==='beach'? 0.05 : 0.015);
@@ -2503,7 +2548,7 @@ const glCanvas = $('#gl');
 $('#btnResume').addEventListener('click', ()=>{
   AUDIO.resume();
   $('#fieldPause').hidden = true;
-  glCanvas.requestPointerLock?.();
+  if(!IS_TOUCH) glCanvas.requestPointerLock?.();
   locked = true; // optimistic; fallback drag-look also works
 });
 document.addEventListener('pointerlockchange', ()=>{
@@ -3205,10 +3250,12 @@ function animate(){
     if(!boxing && (keys.KeyS||keys.ArrowDown)) mz+=1;
     if(!boxing && (keys.KeyA||keys.ArrowLeft)) mx-=1;
     if(!boxing && (keys.KeyD||keys.ArrowRight)) mx+=1;
-    const mv = Math.hypot(mx,mz);
-    if(mv>0){
+    if(!boxing && touchMove.active){ mx += touchMove.x; mz += touchMove.y; }
+    let mv = Math.hypot(mx,mz);
+    if(mv>1){ mx/=mv; mz/=mv; mv=1; }
+    if(mv>0.06){
       mx/=mv; mz/=mv;
-      let speed = 4.4;
+      let speed = 4.4*mv;
       // soft ground
       if(site.soft==='drysand' && player.z>8) speed = 3.0;
       if(site.soft==='plough' && player.x>10) speed = 2.6;
@@ -3300,8 +3347,8 @@ function animate(){
         const d = world.interactives.farmhouseDoor;
         hint.innerHTML = d && Math.hypot(player.x-d.x,player.z-d.z)<5 ? '<b>E</b> knock on the door' : 'Find the farmhouse and knock before detecting';
       }
-      else if(diggableTarget()) hint.innerHTML = '<b>E</b> dig this target &nbsp; <b>SHIFT</b> pinpoint';
-      else if(player.stamina<20) hint.innerHTML = 'Running on empty — <b>R</b> to eat, or <b>H</b> to head home';
+      else if(diggableTarget()) hint.innerHTML = IS_TOUCH? 'Tap <b>DIG</b> — hold <b>PIN·PT</b> to narrow it down' : '<b>E</b> dig this target &nbsp; <b>SHIFT</b> pinpoint';
+      else if(player.stamina<20) hint.innerHTML = IS_TOUCH? 'Running on empty — tap <b>EAT</b>, or pause to head home' : 'Running on empty — <b>R</b> to eat, or <b>H</b> to head home';
       else hint.textContent = '';
     }
   } else {
@@ -3337,6 +3384,81 @@ function teardownField(){
   scene=null; world=null; npc=null; bird=null; snakeObj=null; targets=[]; coilShadow=null; coilGap=0;
   $('#hud').hidden = true;
 }
+
+/* ================= TOUCH CONTROLS ================= */
+const touchMove = { active:false, id:null, x:0, y:0, baseX:0, baseY:0 };
+let lookTouchId = null, lookLast = null;
+if(IS_TOUCH){
+  document.body.classList.add('touch');
+  document.addEventListener('touchstart', ()=>AUDIO.resume(), { once:true });
+  const fieldEl = $('#field');
+  const stickBase = $('#stickBase'), stickKnob = $('#stickKnob');
+  function resetStick(){
+    touchMove.active = false; touchMove.x = 0; touchMove.y = 0; touchMove.id = null;
+    stickKnob.style.transform = 'translate(-50%,-50%)';
+    stickBase.style.left = '24px'; stickBase.style.top = 'auto'; stickBase.style.bottom = '26px';
+  }
+  fieldEl.addEventListener('touchstart', e=>{
+    if(!running || !$('#fieldPause').hidden) return;
+    for(const t of e.changedTouches){
+      const onButton = t.target.closest && t.target.closest('button');
+      if(onButton) continue;
+      if(t.clientX < innerWidth*0.45 && t.clientY > innerHeight*0.35 && !touchMove.active){
+        touchMove.active = true; touchMove.id = t.identifier;
+        touchMove.baseX = t.clientX; touchMove.baseY = t.clientY;
+        stickBase.style.left = (t.clientX-59)+'px'; stickBase.style.top = (t.clientY-59)+'px'; stickBase.style.bottom = 'auto';
+      } else if(lookTouchId === null){
+        lookTouchId = t.identifier; lookLast = { x:t.clientX, y:t.clientY };
+      }
+    }
+  }, { passive:true });
+  fieldEl.addEventListener('touchmove', e=>{
+    if(!running) return;
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(touchMove.active && t.identifier === touchMove.id){
+        let dx = t.clientX - touchMove.baseX, dy = t.clientY - touchMove.baseY;
+        const d = Math.hypot(dx,dy), R = 52;
+        if(d > R){ dx *= R/d; dy *= R/d; }
+        touchMove.x = dx/R; touchMove.y = dy/R;
+        stickKnob.style.transform = 'translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px))';
+      } else if(t.identifier === lookTouchId){
+        yaw -= (t.clientX - lookLast.x)*0.0046;
+        pitch -= (t.clientY - lookLast.y)*0.0036;
+        pitch = Math.max(-1.25, Math.min(0.6, pitch));
+        lookLast = { x:t.clientX, y:t.clientY };
+      }
+    }
+  }, { passive:false });
+  const endTouch = e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier === touchMove.id) resetStick();
+      if(t.identifier === lookTouchId){ lookTouchId = null; lookLast = null; }
+    }
+  };
+  fieldEl.addEventListener('touchend', endTouch);
+  fieldEl.addEventListener('touchcancel', endTouch);
+  // action buttons
+  const guardOk = () => running && $('#fieldPause').hidden &&
+    $('#modal').hidden && $('#digModal').hidden && $('#findModal').hidden && $('#resultsModal').hidden && !boxing;
+  $('#tbDig').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) tryInteract(); });
+  $('#tbPP').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) pinpoint = true; });
+  for(const ev of ['pointerup','pointercancel','pointerleave'])
+    $('#tbPP').addEventListener(ev, ()=>{ pinpoint = false; });
+  $('#tbEat').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) eat(); });
+  $('#tbPause').addEventListener('pointerdown', e=>{ e.preventDefault();
+    if(running && $('#fieldPause').hidden) pauseTitle('PAUSED','Have a breather. Pack up from here if you\u2019re done.'); });
+  // swap keyboard copy for touch copy
+  document.querySelectorAll('.title-controls').forEach(el=>{
+    el.innerHTML = '<span><b>LEFT THUMB</b> move</span><span><b>RIGHT THUMB</b> look (coil swings itself)</span><span><b>DIG</b> when you hear a signal</span>';
+  });
+  $('#btnResume').textContent = 'TAP TO DETECT';
+}
+// tappable boxing choices (work with mouse too)
+document.querySelectorAll('.box-keys .bk').forEach(b=>{
+  b.addEventListener('pointerdown', e=>{ e.preventDefault();
+    if(boxing && boxing.phase==='telegraph'){ boxing.picked = b.dataset.pick; updateBoxHud(); } });
+});
 
 /* ================= WIRING ================= */
 $('#btnGo').addEventListener('click', ()=>{
