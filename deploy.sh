@@ -1,18 +1,10 @@
 #!/bin/sh
-# Build, commit, push, and babysit the flaky legacy Pages build (auto-retry on error).
+# Build, commit, push; deployment runs via GitHub Actions (see .github/workflows/pages.yml).
 set -e
 ./build.sh
 git add -A
 git commit -m "${1:-Update game}" || true
 git push
-echo "pushed — watching Pages build"
-i=0
-while [ $i -lt 40 ]; do
-  s=$(gh api repos/lawquarter/detectorist/pages/builds --jq '.[0].status')
-  echo "  build: $s"
-  if [ "$s" = "built" ]; then echo "deployed ✔"; exit 0; fi
-  if [ "$s" = "errored" ]; then echo "  retrying errored build"; gh api -X POST repos/lawquarter/detectorist/pages/builds >/dev/null; fi
-  sleep 15; i=$((i+1))
-done
-echo "timed out watching build — check: gh api repos/lawquarter/detectorist/pages/builds"
-exit 1
+echo "pushed — watching Actions deploy"
+sleep 5
+gh run watch $(gh run list --repo lawquarter/detectorist --workflow "Deploy to Pages" --limit 1 --json databaseId --jq '.[0].databaseId') --repo lawquarter/detectorist --exit-status && echo "deployed ✔ https://lawquarter.github.io/detectorist/"
