@@ -225,6 +225,14 @@ button{ font-family:var(--disp); }
 .hint b{ font-family:var(--mono); font-size:12px; background:#fff2; padding:0 6px; border-radius:3px; }
 
 #flash{ position:absolute; inset:0; background:var(--alert); opacity:0; pointer-events:none; transition:opacity .5s; }
+#boxhud{ position:absolute; bottom:80px; left:50%; transform:translateX(-50%); width:min(560px, 90vw);
+  background:rgba(12,9,4,0.68); border:1px solid #ffffff26; border-radius:6px; padding:12px 18px;
+  text-align:center; backdrop-filter:blur(4px); }
+.box-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-family:var(--disp);
+  font-size:15px; letter-spacing:0.06em; }
+#boxCue{ flex:1; color:var(--brass-hi); font-size:14px; min-height:20px; }
+.box-keys{ margin-top:8px; color:var(--dim); font-size:13px; letter-spacing:0.08em; }
+.box-keys b{ color:var(--bone); font-family:var(--mono); background:#31250f; padding:1px 7px; border-radius:3px; border:1px solid #4d3f26; }
 #toasts{ position:absolute; left:18px; bottom:18px; display:flex; flex-direction:column; gap:6px; max-width:320px; }
 .toast{ background:rgba(12,9,4,0.72); border:1px solid #ffffff26; border-left:3px solid var(--brass);
   padding:8px 13px; border-radius:4px; font-size:13.5px; animation:slidein .25s; backdrop-filter:blur(3px); }

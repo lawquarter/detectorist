@@ -227,6 +227,14 @@ button{ font-family:var(--disp); }
 .hint b{ font-family:var(--mono); font-size:12px; background:#fff2; padding:0 6px; border-radius:3px; }
 
 #flash{ position:absolute; inset:0; background:var(--alert); opacity:0; pointer-events:none; transition:opacity .5s; }
+#boxhud{ position:absolute; bottom:80px; left:50%; transform:translateX(-50%); width:min(560px, 90vw);
+  background:rgba(12,9,4,0.68); border:1px solid #ffffff26; border-radius:6px; padding:12px 18px;
+  text-align:center; backdrop-filter:blur(4px); }
+.box-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; font-family:var(--disp);
+  font-size:15px; letter-spacing:0.06em; }
+#boxCue{ flex:1; color:var(--brass-hi); font-size:14px; min-height:20px; }
+.box-keys{ margin-top:8px; color:var(--dim); font-size:13px; letter-spacing:0.08em; }
+.box-keys b{ color:var(--bone); font-family:var(--mono); background:#31250f; padding:1px 7px; border-radius:3px; border:1px solid #4d3f26; }
 #toasts{ position:absolute; left:18px; bottom:18px; display:flex; flex-direction:column; gap:6px; max-width:320px; }
 .toast{ background:rgba(12,9,4,0.72); border:1px solid #ffffff26; border-left:3px solid var(--brass);
   padding:8px 13px; border-radius:4px; font-size:13.5px; animation:slidein .25s; backdrop-filter:blur(3px); }
@@ -304,7 +312,7 @@ button{ font-family:var(--disp); }
     <h1 class="title-logo">THE<br>DETECTORIST</h1>
     <div class="title-sub">Swing low. Dig honest. Fill your holes.</div>
     <div class="title-card">
-      <p>You’ve got a second-hand Meridian Drifter, a plastic trowel and $120.
+      <p>You’ve got a second-hand Meridian Drifter, a plastic trowel and $2,000 of long-service leave money.
       Ahead of you: parks full of pre-decimal silver, beaches seeded with lost gold,
       the Victorian goldfields, English farmland over a Roman road, and the old
       commons of New England.</p>
@@ -325,7 +333,7 @@ button{ font-family:var(--disp); }
     <div class="camp-brand">THE DETECTORIST <span class="camp-day">DAY <b id="campDay">1</b></span></div>
     <div class="camp-stats">
       <span class="stat"><label>SPOT MARKET</label><b id="campSpot" class="spot"></b></span>
-      <span class="stat"><label>BANK</label><b id="campMoney">$120</b></span>
+      <span class="stat"><label>BANK</label><b id="campMoney">$2,000</b></span>
       <span class="stat"><label>REPUTATION</label><b id="campRep">★☆☆☆☆</b></span>
       <span class="stat"><label>LIFETIME FINDS</label><b id="campFinds">0</b></span>
     </div>
@@ -414,6 +422,10 @@ button{ font-family:var(--disp); }
       <div id="pinpointTag" class="pinpoint-tag" hidden>◉ PINPOINT</div>
     </div>
 
+    <div id="boxhud" hidden>
+      <div class="box-row"><span id="boxYou"></span><span id="boxCue"></span><span id="boxHer"></span></div>
+      <div class="box-keys"><b>1</b> JAB &nbsp; <b>2</b> BLOCK &nbsp; <b>3</b> DUCK</div>
+    </div>
     <div id="hint" class="hint"></div>
     <div id="flash"></div>
     <div id="toasts"></div>
@@ -1344,13 +1356,41 @@ function makeDetectorModel(color){
   const yoke = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.14,6), lam(0x3a3a3e));
   yoke.position.set(0.165,-0.93,-1.85); yoke.rotation.x = 1.15; g.add(yoke);
   const coil = new THREE.Mesh(new THREE.TorusGeometry(0.19,0.035,8,20), lam(color||0xc9a227));
-  coil.rotation.x = Math.PI/2 - 0.06;
+  coil.rotation.x = Math.PI/2 + 0.14; // flat to the ground, leading edge lifted like a skid plate
   coil.position.set(0.16,-0.97,-1.9);
   const coilInner = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,0.02,20), lam(0x2a2a2e));
+  coilInner.rotation.x = 0.14;
   coilInner.position.copy(coil.position); coilInner.position.y -= 0.005;
   g.add(coil, coilInner);
   g.userData.coil = coil;
+  g.userData.coilParts = [[coil, Math.PI/2 + 0.14],[coilInner, 0.14]];
   return g;
+}
+
+// ---------- boxing gloves ----------
+function makeBoxingGlove(scale){
+  const s = scale||1;
+  const g = new THREE.Group();
+  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.11*s, 8, 7), lam(0xb02a20));
+  fist.scale.set(1,0.9,1.15); g.add(fist);
+  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.07*s,0.09*s,0.11*s,8), lam(0xe8e2d2));
+  cuff.position.set(0,-0.01,0.13*s); cuff.rotation.x = Math.PI/2; g.add(cuff);
+  return g;
+}
+function makePlayerGloves(){
+  const g = new THREE.Group();
+  const l = makeBoxingGlove(1.7); l.position.set(-0.28,-0.35,-0.62); g.add(l);
+  const r = makeBoxingGlove(1.7); r.position.set(0.28,-0.35,-0.62); g.add(r);
+  g.userData = { l, r };
+  return g;
+}
+function addNpcGloves(person){
+  const L = person.userData.limbs;
+  for(const arm of [L.lArm, L.rArm]){
+    const glove = makeBoxingGlove(1.15);
+    glove.position.set(0,-0.72,0);
+    arm.add(glove);
+  }
 }
 
 // ---------- shovel / hole ----------
@@ -1885,7 +1925,7 @@ function buildSite(site, scene){
     animate(t,dt){ sky.animate(dt); if(ocean) ocean.animate(t); } };
 }
 
-return { buildSite, makePerson, makeMagpie, makeSeagull, makeSnake, makeDetectorModel, makeHole, paintIcon, SIZE, HALF, mulberry32 };
+return { buildSite, makePerson, makeMagpie, makeSeagull, makeSnake, makeDetectorModel, makeHole, makePlayerGloves, addNpcGloves, paintIcon, SIZE, HALF, mulberry32 };
 })();
 /* ============ THE DETECTORIST — GAME LOGIC ============ */
 'use strict';
@@ -1895,7 +1935,7 @@ const { DETECTORS, DETECTOR_ORDER, TOOLS, PERMITS, ITEMS, BUCKET, SITES, SITE_OR
 
 /* ================= STATE ================= */
 const DEFAULT_STATE = () => ({
-  day:1, money:120, rep:1, tidy:0, lifetimeFinds:0,
+  day:1, money:2000, rep:1, tidy:0, lifetimeFinds:0,
   country:'AU', location:'au_park',
   detector:'vanquish340', owned:{ vanquish340:true },
   tools:{ trowel:true }, uses:{ snacks:0, thermos:0 },
@@ -2488,6 +2528,14 @@ document.addEventListener('keydown', e=>{
   }
   if(!running || !$('#fieldPause').hidden) return;
   const modalOpen = !$('#modal').hidden || !$('#digModal').hidden || !$('#findModal').hidden || !$('#resultsModal').hidden;
+  if(boxing){
+    if(!modalOpen && boxing.phase==='telegraph'){
+      if(e.code==='Digit1'||e.code==='KeyJ'){ boxing.picked='jab'; updateBoxHud(); }
+      if(e.code==='Digit2'||e.code==='KeyB'){ boxing.picked='block'; updateBoxHud(); }
+      if(e.code==='Digit3'||e.code==='KeyD'){ boxing.picked='duck'; updateBoxHud(); }
+    }
+    return;
+  }
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') pinpoint = true;
   if(modalOpen) return;
   if(e.code==='KeyE') tryInteract();
@@ -2847,15 +2895,18 @@ function scheduleEvents(dt){
   if(kind==='tractor'){ toast(DIALOGUE.tractor); return; }
   spawnWalker(kind);
 }
-function spawnWalker(kind){
+function spawnWalker(kind, forceMale){
+  const male = kind==='karen' && (forceMale!==undefined ? forceMale : Math.random()<0.5);
   const opts = kind==='karen'
-    ? { shirt:0xd88ba8, pants:0xe8e2d2, hair:0xd9c23f, sunnies:true, handbag:true, phone:true }
+    ? (male
+        ? { shirt:0x3a5a8a, pants:0xc9bda0, hair:0x8a8478, hat:'cap', sunnies:true, phone:true }
+        : { shirt:0xd88ba8, pants:0xe8e2d2, hair:0xd9c23f, sunnies:true, handbag:true, phone:true })
     : { shirt:0x6b7a45, pants:0x4a4438, hat:'ranger' };
   const obj = WORLD.makePerson(opts);
   const ang = Math.random()*Math.PI*2;
   obj.position.set(player.x+Math.sin(ang)*26, 0, player.z+Math.cos(ang)*26);
   scene.add(obj);
-  npc = { obj, kind, t:0, walking:true };
+  npc = { obj, kind, t:0, walking:true, male };
 }
 function updateNpc(dt){
   if(!npc) return;
@@ -2882,73 +2933,153 @@ function updateNpc(dt){
 }
 function removeNpc(){ if(npc){ scene.remove(npc.obj); npc=null; } }
 
-function hpBars(you, her){
-  const bar = (hp, max) => {
-    let s = '';
-    for(let i=0;i<max;i++) s += i < hp ? '\u2764\ufe0f' : '\ud83d\udda4';
-    return s;
-  };
-  return '<div style="display:flex;justify-content:space-between;font-size:15px;margin-bottom:8px">' +
-    '<span>\ud83e\udd4a YOU ' + bar(Math.ceil(you),3) + '</span><span>' + bar(Math.ceil(her),3) + ' KAREN \ud83d\udc5c</span></div>';
+/* ---------- in-world boxing (Kevins only) ---------- */
+let boxing = null, playerGloves = null, boxDuck = 0;
+function heartsRow(hp){
+  let s = '';
+  for(let i=0;i<3;i++) s += i < Math.ceil(hp) ? '\u2764\ufe0f' : '\ud83d\udda4';
+  return s;
+}
+function updateBoxHud(msg){
+  if(!boxing) return;
+  $('#boxYou').innerHTML = '\ud83e\udd4a YOU &nbsp;' + heartsRow(boxing.you);
+  $('#boxHer').innerHTML = heartsRow(boxing.her) + ' &nbsp;KEVIN \ud83e\udd4a';
+  const cueText = { hay:'HUGE wind-up \u2014 haymaker coming!', jab:'Quick jabs incoming!', guard:'He\u2019s covered up\u2026' };
+  $('#boxCue').textContent = msg !== undefined ? msg
+    : boxing.phase==='telegraph' ? (cueText[boxing.cue] + (boxing.picked? '  [' + boxing.picked.toUpperCase() + ' ready]' : ''))
+    : '';
 }
 async function karenBoxing(){
-  let you = 3, her = 3, round = 1;
-  await modal({ icon:'\ud83e\udd4a', title:'Queensberry rules', body:
-    '<p>She hands her phone to a bystander to film. You put your detector down gently. The dog walker rings a bell that neither of you can hear.</p>',
+  const wasMale = npc && npc.male;
+  await modal({ icon:'\ud83e\udd4a', title:'Queensberry rules',
+    body:'<p>He fetches two pairs of ancient boxing gloves from the ute \u2014 of course he has them. A dog walker agrees, reluctantly, to hold his phone.</p>' +
+    '<p class="dim small">Watch his wind-up, then <b>1</b> JAB \u00b7 <b>2</b> BLOCK \u00b7 <b>3</b> DUCK</p>',
     options:[{label:'Gloves up', gold:true}]});
-  while(you > 0 && her > 0){
-    const cues = [
-      { k:'hay',   c:'She winds up a HUGE haymaker\u2026' },
-      { k:'jab',   c:'She flicks out sharp little jabs\u2026' },
-      { k:'guard', c:'She covers up behind the handbag\u2026' }];
-    const cue = cues[Math.random()*3|0];
-    const pick = await modal({ icon:'\ud83e\udd4a', title:'Round '+round,
-      body: hpBars(you,her) + '<div class="quote">'+cue.c+'</div>',
-      options:[{key:'jab',label:'JAB'},{key:'duck',label:'DUCK'},{key:'block',label:'BLOCK'}]});
-    let msg = '';
-    if(cue.k==='hay'){
-      if(pick==='duck'){ her -= 2; msg = 'You duck the haymaker and counter. She spins like a shopping trolley with a bad wheel.'; }
-      else if(pick==='block'){ you -= 0.5; msg = 'You block it. Your forearm files a complaint.'; }
-      else { you -= 1; her -= 1; msg = 'You trade blows. Somewhere, a kookaburra laughs.'; }
-    } else if(cue.k==='jab'){
-      if(pick==='block'){ her -= 1; msg = 'You catch the jab and counter neatly. Textbook.'; }
-      else if(pick==='duck'){ you -= 1; msg = 'You duck straight into it. Rookie error.'; }
-      else { you -= 0.5; her -= 0.5; msg = 'A messy exchange of slaps. The bystander zooms in.'; }
-    } else {
-      if(pick==='jab'){ her -= 1; msg = 'You jab straight through the handbag defence.'; }
-      else if(pick==='duck'){ msg = 'You duck under\u2026 nothing. She looks confused. So does the dog.'; }
-      else { msg = 'You both stand there blocking. The crowd (one labrador) is bored.'; }
-    }
-    player.stamina = Math.max(0, player.stamina - 6);
-    round++;
-    if(you > 0 && her > 0)
-      await modal({ icon:'\ud83e\udd4a', title:'\u2026', body: hpBars(you,her)+'<p>'+msg+'</p>', options:[{label:'Next round', gold:true}]});
+  // stage the opponent squared up in front of you
+  const o = npc.obj;
+  const fx = player.x + Math.sin(yaw)*-2.4, fz = player.z + Math.cos(yaw)*-2.4;
+  o.position.set(fx, world.heightAt(fx,fz), fz);
+  WORLD.addNpcGloves(o);
+  playerGloves = WORLD.makePlayerGloves();
+  camera.add(playerGloves);
+  if(detectorModel) detectorModel.visible = false;
+  if(coilShadow) coilShadow.visible = false;
+  AUDIO.stopTone();
+  $('#boxhud').hidden = false;
+  boxing = { you:3, her:3, phase:'pre', t:0, cue:null, picked:null, anim:null, male:wasMale, done:null };
+  updateBoxHud('Round 1');
+  return new Promise(res => { boxing.done = res; });
+}
+function resolveBoxingRound(){
+  const B = boxing; const pick = B.picked;
+  let msg = '';
+  if(B.cue==='hay'){
+    if(pick==='duck'){ B.her -= 2; B.anim='duck'; msg = 'You duck the haymaker and counter! He spins like a ute door in the wind.'; }
+    else if(pick==='block'){ B.you -= 0.5; B.anim='block'; msg = 'Blocked \u2014 your forearm files a complaint.'; }
+    else if(pick==='jab'){ B.you -= 1; B.her -= 1; B.anim='jab'; msg = 'You trade blows. A kookaburra laughs.'; }
+    else { B.you -= 1.5; B.anim='hit'; msg = 'The haymaker lands flush. You see sponsorship logos.'; }
+  } else if(B.cue==='jab'){
+    if(pick==='block'){ B.her -= 1; B.anim='block'; msg = 'Caught it on the glove and countered. Textbook.'; }
+    else if(pick==='duck'){ B.you -= 1; B.anim='hit'; msg = 'You duck straight into it. Rookie error.'; }
+    else if(pick==='jab'){ B.you -= 0.5; B.her -= 0.5; B.anim='jab'; msg = 'A scrappy exchange. The labrador looks away.'; }
+    else { B.you -= 1; B.anim='hit'; msg = 'Jab, jab \u2014 both land. Wake up!'; }
+  } else {
+    if(pick==='jab'){ B.her -= 1; B.anim='jab'; msg = 'You jab straight through the guard.'; }
+    else if(pick==='duck'){ B.anim='duck'; msg = 'You duck under\u2026 nothing. He looks confused.'; }
+    else { B.anim='block'; msg = 'You both stand there defending. Gripping stuff.'; }
   }
-  if(her <= 0){
+  if(B.anim==='hit'){ AUDIO.blip(110,0.16,'square',0.35); $('#flash').style.opacity = 0.3; setTimeout(()=>$('#flash').style.opacity=0, 160); }
+  else if(B.her < B.herBefore) AUDIO.blip(180,0.1,'square',0.28);
+  player.stamina = Math.max(0, player.stamina - 5);
+  B.phase = 'resolve'; B.t = 0;
+  updateBoxHud(msg);
+}
+function updateBoxing(dt){
+  const B = boxing; if(!B || !npc) return;
+  B.t += dt;
+  const o = npc.obj;
+  o.position.y = world.heightAt(o.position.x, o.position.z);
+  o.rotation.y = Math.atan2(player.x - o.position.x, player.z - o.position.z);
+  const L = o.userData.limbs;
+  if(B.phase==='pre'){
+    L.rArm.rotation.x += (-0.4 - L.rArm.rotation.x)*dt*5;
+    L.lArm.rotation.x += (-0.4 - L.lArm.rotation.x)*dt*5;
+    if(B.t > 0.75){
+      B.phase='telegraph'; B.t=0; B.picked=null; B.herBefore=B.her;
+      B.cue = ['hay','jab','guard'][Math.random()*3|0];
+      AUDIO.blip(660,0.07,'square',0.16);
+      updateBoxHud();
+    }
+  } else if(B.phase==='telegraph'){
+    if(B.cue==='hay'){ L.rArm.rotation.x += (-2.5 - L.rArm.rotation.x)*dt*3.5; L.rArm.rotation.z = -0.4; }
+    else if(B.cue==='jab'){ L.lArm.rotation.x += (-1.3 - L.lArm.rotation.x)*dt*8; L.lArm.rotation.x += Math.sin(B.t*18)*0.04; }
+    else { L.lArm.rotation.x += (-1.7 - L.lArm.rotation.x)*dt*6; L.rArm.rotation.x += (-1.7 - L.rArm.rotation.x)*dt*6; }
+    if(B.t > 1.35) resolveBoxingRound();
+  } else if(B.phase==='resolve'){
+    const p = Math.min(1, B.t/0.45);
+    const lunge = Math.sin(p*Math.PI);
+    if(playerGloves){
+      const G = playerGloves.userData;
+      G.l.position.set(-0.28,-0.35,-0.62); G.r.position.set(0.28,-0.35,-0.62);
+      if(B.anim==='jab') G.r.position.z = -0.62 - lunge*0.6;
+      if(B.anim==='block'){ G.l.position.set(-0.15,-0.35+lunge*0.22,-0.55); G.r.position.set(0.15,-0.35+lunge*0.22,-0.55); }
+    }
+    boxDuck = B.anim==='duck' ? lunge*0.42 : 0;
+    // his strike follows through
+    const arm = B.cue==='jab' ? L.lArm : L.rArm;
+    arm.rotation.x += ((B.cue==='guard'? -1.7 : -1.4+lunge*1.2) - arm.rotation.x)*dt*10;
+    if(B.t > 1.0){
+      if(B.you <= 0 || B.her <= 0){ endBoxing(B.her <= 0 ? 'win' : 'lose'); }
+      else { B.phase='pre'; B.t=0; boxDuck=0; }
+    }
+  }
+}
+async function endBoxing(result){
+  const done = boxing.done;
+  boxing = null; boxDuck = 0;
+  $('#boxhud').hidden = true;
+  if(playerGloves){ camera.remove(playerGloves); playerGloves = null; }
+  if(detectorModel) detectorModel.visible = true;
+  if(coilShadow) coilShadow.visible = true;
+  removeNpc();
+  if(result==='win'){
     state.karensSurvived++;
-    state.rep = Math.max(0, state.rep - 1);
-    await modal({ icon:'\ud83c\udfc6', title:'Winner by handbag forfeit',
-      body:'<p>She scoops up the handbag, declares the whole thing assault, and power-walks to the car park. The footage, mercifully, is all sky.</p><p class="dim">Word gets around, though. Reputation down \u2605 \u2014 and someone may have rung the ranger.</p>',
-      options:[{label:'Back to the signal', gold:true}]});
-    eventTimer = Math.min(eventTimer, 12); flagTime = Math.max(flagTime, 5);
+    if(Math.random() < 0.5){
+      await modal({ icon:'\ud83c\udfc6', title:'Winner \u2014 and no footage',
+        body:'<p>He sits down heavily on the grass and concedes with a wave. The dog walker, it turns out, filmed forty seconds of the inside of a pocket. No evidence, no witnesses willing to get involved.</p><p class="dim">He retreats to the ute with his dignity lightly used.</p>',
+        options:[{label:'Back to the signal', gold:true}]});
+    } else {
+      await modal({ icon:'\ud83d\ude94', title:'Police follow-up',
+        body:'<p>You win on points \u2014 but a constable visits before you\u2019ve refilled your first plug. Affray in a public reserve, both parties cautioned.</p><p><b>Fine: '+fmt$(150)+'</b></p>',
+        options:[{label:'Cop it sweet', gold:true}]});
+      state.money = Math.max(0, state.money - 150); state.fines++; sessionSpend += 150;
+      updatePouchHud(); AUDIO.bad();
+    }
   } else {
     await modal({ icon:'\ud83e\udd15', title:'Down for the count',
-      body:'<p>The haymaker you never saw. You come to with grass in your mouth and a labrador licking your ear. The footage is already captioned.</p><p class="dim">Stamina is gone. Maybe head home.</p>',
+      body:'<p>The haymaker you never saw. You come to with grass in your mouth and a labrador licking your ear.</p><p class="dim">Stamina is gone. Maybe head home.</p>',
       options:[{label:'Ouch', gold:true}]});
     player.stamina = 5;
   }
+  save();
+  if(done) done();
 }
+const KEVIN_LINES = [
+  '"Oi mate, you can\u2019t just dig holes in a public park!"',
+  '"Anything you find here is MINE, that is. This is MY park. I walk here."',
+  '"I pay my rates, sunshine. Pack it up or you and me have got a problem."'];
 async function karenDialogue(){
   document.exitPointerLock?.();
   AUDIO.blip(880,0.2,'sawtooth',0.15);
   const K = DIALOGUE.karen;
-  const line = K.lines[Math.random()*K.lines.length|0];
+  const male = npc && npc.male;
+  const line = male ? KEVIN_LINES[Math.random()*KEVIN_LINES.length|0] : K.lines[Math.random()*K.lines.length|0];
   const site = SITES[state.location];
   const hasPermitHere = (site.permit && state.permits[site.permit]) || (site.permission && state.farmPermission) || site.id==='au_park'||site.id==='au_beach'||site.id==='us_beach';
   const choice = await modal({ icon:'📱', title:K.title,
     body:'<div class="quote">'+line+'</div>',
     options: K.options.map(o=>({ key:o.key, label:o.label + (o.hint? ' <span class="dim small">— '+o.hint+'</span>':'') }))
-      .concat([{ key:'box', label:'Settle it in the ring 🥊 <span class="dim small">— Queensberry rules</span>' }]) });
+      .concat(male ? [{ key:'box', label:'Suggest you settle it like gentlemen 🥊 <span class="dim small">— Queensberry rules</span>' }] : []) });
   if(choice==='box'){ await karenBoxing(); removeNpc(); save(); return; }
   const opt = K.options.find(o=>o.key===choice);
   let ok;
@@ -3069,10 +3200,10 @@ function animate(){
   if(running && !paused){
     // movement
     let mx=0, mz=0;
-    if(keys.KeyW||keys.ArrowUp) mz-=1;
-    if(keys.KeyS||keys.ArrowDown) mz+=1;
-    if(keys.KeyA||keys.ArrowLeft) mx-=1;
-    if(keys.KeyD||keys.ArrowRight) mx+=1;
+    if(!boxing && (keys.KeyW||keys.ArrowUp)) mz-=1;
+    if(!boxing && (keys.KeyS||keys.ArrowDown)) mz+=1;
+    if(!boxing && (keys.KeyA||keys.ArrowLeft)) mx-=1;
+    if(!boxing && (keys.KeyD||keys.ArrowRight)) mx+=1;
     const mv = Math.hypot(mx,mz);
     if(mv>0){
       mx/=mv; mz/=mv;
@@ -3097,7 +3228,7 @@ function animate(){
     // camera
     const gy = world.heightAt(player.x, player.z);
     const bob = mv>0 ? Math.sin(t*8)*0.045 : 0;
-    camera.position.set(player.x, gy+1.62+bob, player.z);
+    camera.position.set(player.x, gy+1.62+bob-(boxDuck||0), player.z);
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yaw; camera.rotation.x = pitch;
     // automatic coil swing — the coil fans an arc out from the viewpoint;
@@ -3114,6 +3245,8 @@ function animate(){
       detectorModel.position.z = PZ - (-PX*sn + PZ*cs);
       detectorModel.rotation.z = Math.sin(t*2.2)*0.012;
       detectorModel.position.y = 0;
+      // the skid plate stays parallel to the ground whatever your gaze does
+      for(const part of detectorModel.userData.coilParts) part[0].rotation.x = part[1] - pitch*0.92;
       camera.updateMatrixWorld();
       detectorModel.userData.coil.getWorldPosition(_coilV);
       // the arm keeps the coil riding ~8cm over the soil and it can never clip under;
@@ -3140,9 +3273,12 @@ function animate(){
         coilShadow.material.opacity = Math.max(0.07, 0.5 - coilGap*0.5);
       }
     }
+    if(boxing){ updateBoxing(dt); AUDIO.stopTone(); }
+    else {
     updateDetection(dt);
     scheduleEvents(dt);
     updateNpc(dt);
+    }
     updateBird(dt);
     updateSnake(t);
     // prohibited zone
@@ -3240,6 +3376,7 @@ window.DBG = {
   teleport(x,z){ player.x=x; player.z=z; },
   coil(){ return { x: coilWorld.x, z: coilWorld.z, ok: coilWorld.ok, swing: swingAmp, gap: coilGap }; },
   karen(){ spawnWalker('karen'); },
+  kevin(){ spawnWalker('karen', true); },
   probe(){ const v = new THREE.Vector3(); camera.updateMatrixWorld(); detectorModel.userData.coil.getWorldPosition(v);
     return { pitch, yaw, camY: camera.position.y, coilY: v.y, gTerr: world.heightAt(v.x, v.z),
       modelPos: detectorModel.position.toArray().map(n=>+n.toFixed(3)), rotY: +detectorModel.rotation.y.toFixed(3) }; },

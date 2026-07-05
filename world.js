@@ -507,13 +507,41 @@ function makeDetectorModel(color){
   const yoke = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.14,6), lam(0x3a3a3e));
   yoke.position.set(0.165,-0.93,-1.85); yoke.rotation.x = 1.15; g.add(yoke);
   const coil = new THREE.Mesh(new THREE.TorusGeometry(0.19,0.035,8,20), lam(color||0xc9a227));
-  coil.rotation.x = Math.PI/2 - 0.06;
+  coil.rotation.x = Math.PI/2 + 0.14; // flat to the ground, leading edge lifted like a skid plate
   coil.position.set(0.16,-0.97,-1.9);
   const coilInner = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,0.02,20), lam(0x2a2a2e));
+  coilInner.rotation.x = 0.14;
   coilInner.position.copy(coil.position); coilInner.position.y -= 0.005;
   g.add(coil, coilInner);
   g.userData.coil = coil;
+  g.userData.coilParts = [[coil, Math.PI/2 + 0.14],[coilInner, 0.14]];
   return g;
+}
+
+// ---------- boxing gloves ----------
+function makeBoxingGlove(scale){
+  const s = scale||1;
+  const g = new THREE.Group();
+  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.11*s, 8, 7), lam(0xb02a20));
+  fist.scale.set(1,0.9,1.15); g.add(fist);
+  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.07*s,0.09*s,0.11*s,8), lam(0xe8e2d2));
+  cuff.position.set(0,-0.01,0.13*s); cuff.rotation.x = Math.PI/2; g.add(cuff);
+  return g;
+}
+function makePlayerGloves(){
+  const g = new THREE.Group();
+  const l = makeBoxingGlove(1.7); l.position.set(-0.28,-0.35,-0.62); g.add(l);
+  const r = makeBoxingGlove(1.7); r.position.set(0.28,-0.35,-0.62); g.add(r);
+  g.userData = { l, r };
+  return g;
+}
+function addNpcGloves(person){
+  const L = person.userData.limbs;
+  for(const arm of [L.lArm, L.rArm]){
+    const glove = makeBoxingGlove(1.15);
+    glove.position.set(0,-0.72,0);
+    arm.add(glove);
+  }
 }
 
 // ---------- shovel / hole ----------
@@ -1048,5 +1076,5 @@ function buildSite(site, scene){
     animate(t,dt){ sky.animate(dt); if(ocean) ocean.animate(t); } };
 }
 
-return { buildSite, makePerson, makeMagpie, makeSeagull, makeSnake, makeDetectorModel, makeHole, paintIcon, SIZE, HALF, mulberry32 };
+return { buildSite, makePerson, makeMagpie, makeSeagull, makeSnake, makeDetectorModel, makeHole, makePlayerGloves, addNpcGloves, paintIcon, SIZE, HALF, mulberry32 };
 })();
