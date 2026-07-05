@@ -3476,7 +3476,12 @@ $('#btnGo').addEventListener('click', ()=>{
 $('#btnNew').addEventListener('click', ()=>{
   state = DEFAULT_STATE(); save();
   AUDIO.resume();
-  renderCamp(); show('camp');
+  // straight onto the sand — base camp can wait
+  enterField();
+  pauseTitle('DAY 1 — KINGFISHER BEACH',
+    'Straight onto the sand: sunrise, low tide, and a summer of lost property under your coil. ' +
+    (IS_TOUCH ? 'Tap \u275a\u275a then \u201cPack up & head home\u201d' : 'Press H') +
+    ' whenever you like to head home \u2014 the world map, shop, missions and detector upgrades all live there.');
 });
 $('#btnContinue').addEventListener('click', ()=>{ AUDIO.resume(); renderCamp(); show('camp'); });
 
