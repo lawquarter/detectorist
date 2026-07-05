@@ -198,7 +198,7 @@ const SITES = {
     prohibited:{ label:'War Memorial precinct', reason:'Detecting is prohibited around the memorial. Rangers patrol it.' } },
   au_beach: { id:'au_beach', country:'AU', flag:'🇦🇺', name:'Kingfisher Beach', region:'NSW South Coast',
     travel:{ mode:'bus', cost:15, label:'Bus — 2 hrs' },
-    terrain:'beach', time:'sunrise', targets:110,
+    terrain:'beach', time:'sunrise', targets:220,
     desc:'Low tide at first light: rolling swell, wet sand laid bare, and the towel line seeded with a summer of losses.',
     finds:{ au2d:1.2, au1d:1.2, au50c:1, ring9ct:1, ring18ct:1, silchain:1, earring:1, sinker:1.4, bottlecap:0.8, ringpull:1.4, foil:1, cladq:0 },
     hazards:['karen','seagull'],

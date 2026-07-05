@@ -9,7 +9,7 @@ const { DETECTORS, DETECTOR_ORDER, TOOLS, PERMITS, ITEMS, BUCKET, SITES, SITE_OR
 /* ================= STATE ================= */
 const DEFAULT_STATE = () => ({
   day:1, money:2000, rep:1, tidy:0, lifetimeFinds:0,
-  country:'AU', location:'au_park',
+  country:'AU', location:'au_beach',
   detector:'vanquish340', owned:{ vanquish340:true },
   tools:{ trowel:true }, uses:{ snacks:0, thermos:0 },
   packSlots:6, loadout:['trowel'],
