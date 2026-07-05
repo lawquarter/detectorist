@@ -1,0 +1,183 @@
+<title>The Detectorist — a metal detecting adventure</title>
+
+<!-- ============ TITLE ============ -->
+<div id="title" class="screen">
+  <div class="title-inner">
+    <div class="title-eyebrow">A FIRST-PERSON DETECTING ADVENTURE</div>
+    <h1 class="title-logo">THE<br>DETECTORIST</h1>
+    <div class="title-sub">Swing low. Dig honest. Fill your holes.</div>
+    <div class="title-card">
+      <p>You’ve got a second-hand Meridian Drifter, a plastic trowel and $120.
+      Ahead of you: parks full of pre-decimal silver, beaches seeded with lost gold,
+      the Victorian goldfields, English farmland over a Roman road, and the old
+      commons of New England.</p>
+      <p class="dim">Karens, council rangers, swooping magpies and tiger snakes sold separately.</p>
+    </div>
+    <button id="btnNew" class="btn big gold">START DETECTING</button>
+    <button id="btnContinue" class="btn big" hidden>CONTINUE — DAY <span id="contDay"></span></button>
+    <div class="title-controls">
+      <span><b>WASD</b> walk (coil swings itself)</span><span><b>MOUSE</b> look</span><span><b>SHIFT</b> pinpoint</span>
+      <span><b>E</b> dig</span><span><b>R</b> eat</span><span><b>H</b> head home</span><span><b>TAB</b> menu</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ BASE CAMP ============ -->
+<div id="camp" class="screen" hidden>
+  <header class="camp-top">
+    <div class="camp-brand">THE DETECTORIST <span class="camp-day">DAY <b id="campDay">1</b></span></div>
+    <div class="camp-stats">
+      <span class="stat"><label>SPOT MARKET</label><b id="campSpot" class="spot"></b></span>
+      <span class="stat"><label>BANK</label><b id="campMoney">$120</b></span>
+      <span class="stat"><label>REPUTATION</label><b id="campRep">★☆☆☆☆</b></span>
+      <span class="stat"><label>LIFETIME FINDS</label><b id="campFinds">0</b></span>
+    </div>
+  </header>
+  <nav class="camp-tabs">
+    <button class="tab active" data-tab="map">WORLD MAP</button>
+    <button class="tab" data-tab="shop">DEALER &amp; SHOP</button>
+    <button class="tab" data-tab="kit">MY KIT</button>
+    <button class="tab" data-tab="collection">COLLECTION</button>
+    <button class="tab" data-tab="missions">NOTICE BOARD</button>
+  </nav>
+  <main class="camp-body">
+    <section id="tab-map" class="tabpane active">
+      <div class="map-wrap"><svg id="worldmap" viewBox="0 0 900 430" aria-label="World map"></svg></div>
+      <div id="siteInfo" class="site-info"></div>
+    </section>
+    <section id="tab-shop" class="tabpane">
+      <div class="shop-cols">
+        <div class="shop-col"><h3>SELL FINDS</h3><div id="sellList" class="cardlist"></div></div>
+        <div class="shop-col"><h3>DETECTORS</h3><div id="detList" class="cardlist"></div>
+          <h3>TOOLS &amp; SUPPLIES</h3><div id="toolList" class="cardlist"></div>
+          <h3>PERMITS</h3><div id="permitList" class="cardlist"></div></div>
+      </div>
+    </section>
+    <section id="tab-kit" class="tabpane">
+      <div class="kit-cols">
+        <div><h3>DETECTOR</h3><div id="kitDetector" class="cardlist"></div></div>
+        <div><h3>BACKPACK <span id="kitSlots" class="dim"></span></h3>
+          <p class="dim small">Tick what you carry. Diggers dig faster; the pinpointer speeds recovery; food restores stamina in the field.</p>
+          <div id="kitPack" class="cardlist"></div></div>
+      </div>
+    </section>
+    <section id="tab-collection" class="tabpane">
+      <h3>BUCKET LIST</h3><div id="bucketList" class="bucket"></div>
+      <h3>DISPLAY CABINET <span class="dim small">— finds you chose to keep</span></h3>
+      <div id="cabinet" class="cardlist"></div>
+    </section>
+    <section id="tab-missions" class="tabpane">
+      <div id="missionBoard" class="notes"></div>
+    </section>
+  </main>
+  <footer class="camp-foot">
+    <div id="campHint" class="dim"></div>
+    <button id="btnGo" class="btn big gold">HEAD OUT →</button>
+  </footer>
+</div>
+
+<!-- ============ FIELD (3D) ============ -->
+<div id="field" class="screen" hidden>
+  <canvas id="gl"></canvas>
+  <div id="hud" hidden>
+    <div class="hud-top">
+      <div class="hud-site"><b id="hudSite"></b><span id="hudTime"></span></div>
+      <div class="hud-mid">
+        <div class="stambar"><label>STAMINA</label><div class="bar"><div id="stamFill"></div></div></div>
+        <div class="hud-pouch">POUCH <b id="hudPouch">0/12</b></div>
+        <div class="hud-cash">$<span id="hudCash">0</span></div>
+      </div>
+      <div id="hudMission" class="hud-mission" hidden></div>
+    </div>
+    <div id="compass"><div id="compassStrip"></div><div class="compass-tick"></div></div>
+    <div id="crosshair"></div>
+    <div id="pzoneWarn" class="pzone-warn" hidden>⚠ RESTRICTED AREA — detecting prohibited</div>
+
+    <!-- detector control box -->
+    <div id="detpanel" class="detpanel">
+      <div class="det-name"><span id="detBrand"></span> <b id="detModel"></b></div>
+      <div id="detLcd" class="det-lcd">
+        <div class="lcd-row">
+          <div class="lcd-idwrap"><div class="lcd-label">TARGET ID</div><div id="lcdId" class="lcd-id">--</div></div>
+          <div class="lcd-side">
+            <div class="lcd-label">DEPTH</div>
+            <div id="lcdDepth" class="lcd-depth"><i></i><i></i><i></i><i></i><i></i></div>
+            <div id="lcdMode" class="lcd-mode">PARK</div>
+          </div>
+        </div>
+        <div id="lcdScale" class="lcd-scale"></div>
+        <div id="lcdCursor" class="lcd-cursor"></div>
+        <canvas id="lcd2dMap" width="196" height="88" hidden></canvas>
+      </div>
+      <div id="detGold" class="det-gold" hidden>
+        <div class="lcd-label">SIGNAL</div>
+        <div class="gold-meter"><div id="goldNeedle"></div></div>
+        <div class="gold-marks"><span>QUIET</span><span>GOLD?</span><span>DIG!</span></div>
+      </div>
+      <div id="pinpointTag" class="pinpoint-tag" hidden>◉ PINPOINT</div>
+    </div>
+
+    <div id="hint" class="hint"></div>
+    <div id="flash"></div>
+    <div id="toasts"></div>
+  </div>
+
+  <!-- click to start / pause overlay -->
+  <div id="fieldPause" class="pauseveil">
+    <div class="pause-card">
+      <h2 id="pauseTitle">READY</h2>
+      <p id="pauseDesc"></p>
+      <button id="btnResume" class="btn big gold">CLICK TO DETECT</button>
+      <button id="btnPackUp" class="btn big">PACK UP &amp; HEAD HOME</button>
+      <div class="title-controls small">
+        <span><b>WASD</b> walk</span><span><b>MOUSE</b> look</span><span><b>SHIFT</b> pinpoint</span>
+        <span><b>E</b> dig</span><span><b>R</b> eat</span><span><b>H</b> head home</span><span><b>TAB</b> menu</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALS ============ -->
+<div id="modal" class="modalveil" hidden>
+  <div class="modal-card" id="modalCard">
+    <div id="modalIcon" class="modal-icon"></div>
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody" class="modal-body"></div>
+    <div id="modalBtns" class="modal-btns"></div>
+  </div>
+</div>
+
+<div id="digModal" class="modalveil" hidden>
+  <div class="modal-card dig-card">
+    <h2>DIGGING…</h2>
+    <div class="dig-visual"><div id="digSoil"><div id="digDepthLine"></div><div id="digTarget">?</div></div></div>
+    <div class="dig-row"><span id="digInfo"></span><span id="digStam" class="dim"></span></div>
+    <div class="modal-btns">
+      <button id="btnDigMore" class="btn gold">DIG (E)</button>
+      <button id="btnDigStop" class="btn">ABANDON HOLE</button>
+    </div>
+  </div>
+</div>
+
+<div id="findModal" class="modalveil" hidden>
+  <div class="modal-card find-card">
+    <div class="find-head" id="findKind">COIN</div>
+    <canvas id="findIcon" width="140" height="140"></canvas>
+    <h2 id="findName"></h2>
+    <div id="findBlurb" class="find-blurb"></div>
+    <div id="findMeta" class="find-meta"></div>
+    <div class="modal-btns">
+      <button id="btnKeep" class="btn gold">POUCH IT</button>
+      <button id="btnBin" class="btn">BIN IT <span class="dim">(+tidy)</span></button>
+      <button id="btnLeave" class="btn">LEAVE IT</button>
+    </div>
+  </div>
+</div>
+
+<div id="resultsModal" class="modalveil" hidden>
+  <div class="modal-card results-card">
+    <h2>END OF THE DAY</h2>
+    <div id="resultsBody"></div>
+    <div class="modal-btns"><button id="btnHome" class="btn big gold">BACK TO BASE CAMP</button></div>
+  </div>
+</div>
