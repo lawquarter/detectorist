@@ -1091,9 +1091,9 @@ function updateBoxing(dt){
     const lunge = Math.sin(p*Math.PI);
     if(playerGloves){
       const G = playerGloves.userData;
-      G.l.position.set(-0.28,-0.35,-0.62); G.r.position.set(0.28,-0.35,-0.62);
-      if(B.anim==='jab') G.r.position.z = -0.62 - lunge*0.6;
-      if(B.anim==='block'){ G.l.position.set(-0.15,-0.35+lunge*0.22,-0.55); G.r.position.set(0.15,-0.35+lunge*0.22,-0.55); }
+      G.l.position.set(-0.22,-0.3,-0.58); G.r.position.set(0.22,-0.3,-0.58);
+      if(B.anim==='jab') G.r.position.z = -0.58 - lunge*0.6;
+      if(B.anim==='block'){ G.l.position.set(-0.12,-0.3+lunge*0.18,-0.52); G.r.position.set(0.12,-0.3+lunge*0.18,-0.52); }
     }
     boxDuck = B.anim==='duck' ? lunge*0.42 : 0;
     // his strike follows through

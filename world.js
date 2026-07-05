@@ -530,8 +530,8 @@ function makeBoxingGlove(scale){
 }
 function makePlayerGloves(){
   const g = new THREE.Group();
-  const l = makeBoxingGlove(1.7); l.position.set(-0.28,-0.35,-0.62); g.add(l);
-  const r = makeBoxingGlove(1.7); r.position.set(0.28,-0.35,-0.62); g.add(r);
+  const l = makeBoxingGlove(0.8); l.position.set(-0.22,-0.3,-0.58); g.add(l);
+  const r = makeBoxingGlove(0.8); r.position.set(0.22,-0.3,-0.58); g.add(r);
   g.userData = { l, r };
   return g;
 }
