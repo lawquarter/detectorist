@@ -467,6 +467,7 @@ function enterField(){
   holes = new THREE.Group(); scene.add(holes);
   // player start
   player.x = 0; player.z = 60; yaw = Math.PI; pitch = -0.1;
+  if(site.terrain==='beach'){ player.x = 55; player.z = 26; yaw = 0.42; pitch = -0.05; } // beside the water: surf, sun and the lifeguard tower in frame
   if(site.id==='uk_farm' && !state.farmPermission){ player.x=-66.5; player.z=46; yaw = 2.6; }
   player.stamina = 100;
   permissionActive = !(site.permission && !state.farmPermission);
