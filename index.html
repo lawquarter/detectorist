@@ -237,7 +237,11 @@ button{ font-family:var(--disp); }
 #boxCue{ flex:1; color:var(--brass-hi); font-size:14px; min-height:20px; }
 .box-keys{ margin-top:8px; color:var(--dim); font-size:13px; letter-spacing:0.08em; }
 .box-keys b{ color:var(--bone); font-family:var(--mono); background:#31250f; padding:1px 7px; border-radius:3px; border:1px solid #4d3f26; }
-#toasts{ position:absolute; left:18px; bottom:18px; display:flex; flex-direction:column; gap:6px; max-width:320px; }
+#toasts{ position:absolute; left:18px; bottom:34px; display:flex; flex-direction:column; gap:6px; max-width:320px; }
+.density-dots{ position:absolute; left:20px; bottom:12px; display:flex; gap:5px; opacity:0.4; }
+.density-dots i{ width:5px; height:5px; border-radius:50%; background:var(--brass); display:block; }
+.density-dots i.off{ background:#ffffff1e; }
+body.touch .density-dots{ left:24px; bottom:152px; }
 .toast{ background:rgba(12,9,4,0.72); border:1px solid #ffffff26; border-left:3px solid var(--brass);
   padding:8px 13px; border-radius:4px; font-size:13.5px; animation:slidein .25s; backdrop-filter:blur(3px); }
 .toast.bucket{ border-left-color:var(--brass-hi); background:rgba(60,45,8,0.85); }
@@ -424,6 +428,7 @@ body.touch #boxhud{ bottom:130px; }
       </div>
       <div id="hudMission" class="hud-mission" hidden></div>
     </div>
+    <div id="densityDots" class="density-dots"></div>
     <div id="compass"><div id="compassStrip"></div><div class="compass-tick"></div></div>
     <div id="crosshair"></div>
     <div id="pzoneWarn" class="pzone-warn" hidden>⚠ RESTRICTED AREA — detecting prohibited</div>
@@ -1996,7 +2001,7 @@ const DEFAULT_STATE = () => ({
   packSlots:6, loadout:['trowel'],
   pouch:[], cabinet:[],
   bucket:{}, permits:{}, farmPermission:null,
-  missions:{}, fines:0, karensSurvived:0, specials:{},
+  missions:{}, genMissions:[], noticeSeq:0, fines:0, karensSurvived:0, specials:{},
   market:{ g:1, s:1, pg:1, ps:1 },
 });
 let state = DEFAULT_STATE();
@@ -2191,7 +2196,7 @@ function selectSite(id){
   if(site.prohibited) badges.push('<span class="badge warn">Restricted: '+site.prohibited.label+'</span>');
   if(site.mineralised) badges.push('<span class="badge warn">Hot ground — gold machine advised</span>');
   if(site.soft) badges.push('<span class="badge">'+(site.soft==='plough'?'Heavy walking on the plough':'Soft dry sand — tiring')+'</span>');
-  const mission = MISSIONS.find(m=>m.site===id && state.missions[m.id]==='accepted');
+  const mission = allMissions().find(m=>m.site===id && state.missions[m.id]==='accepted');
   if(mission) badges.push('<span class="badge good">Mission: '+mission.title+'</span>');
   $('#siteInfo').innerHTML =
     '<h2>'+site.name+'</h2><div class="region">'+site.region+' — '+travelLabel(id)+'</div>' +
@@ -2391,9 +2396,66 @@ function renderCollection(){
 }
 
 /* ---------- missions ---------- */
+function allMissions(){ return MISSIONS.concat(state.genMissions||[]); }
+
+/* generated notice-board posts — two fresh ones every trip home */
+const NOTICE_NAMES = {
+  AU:['Bazza','Noelene','Merv','Kylie H.','Trev from the caravan park','Dot','Warren, RSL sub-branch'],
+  UK:['Mrs Pemberton','Colin','the Rev. Hollis','Aggie','Ted the thatcher','Maud'],
+  US:['Chuck','Mary-Beth','Earl Jr.','Prof. Lindqvist','Hank','Dolores'],
+};
+const NOTICE_TEMPLATES = [
+  { title:(i)=>'Lost: '+i.name,
+    post:(i,s,n)=>'"Lost my '+i.name.toLowerCase()+' at '+s.name+' a while back. Sentimental value beyond words — reward offered. — '+n+'"',
+    accept:(i,s,n)=>n+' marks your map with a shaky hand. "Somewhere out there. I just know it."',
+    done:(i,s,n)=>n+' turns it over twice, then shakes your hand a beat too long. The reward is yours.' },
+  { title:(i)=>'Wanted: '+i.name,
+    post:(i,s,n)=>'"Collector seeks '+i.name.toLowerCase()+' from '+s.name+', any condition. Top dollar, no questions asked. — '+n+'"',
+    accept:(i,s,n)=>n+' taps the notice. "Fresh out of the ground, mind. I can tell."',
+    done:(i,s,n)=>n+' inspects it with a loupe, grunts approvingly, and counts out the notes.' },
+  { title:(i,s)=>'The '+s.name+' '+i.name,
+    post:(i,s,n)=>'"The local historical society will pay for a '+i.name.toLowerCase()+' recovered at '+s.name+' — provenance matters. — '+n+'"',
+    accept:(i,s,n)=>n+' adjusts their glasses. "Context photos, please. And do fill your holes."',
+    done:(i,s,n)=>'"Remarkable." Your find makes the society newsletter, and '+n+' makes good on the reward.' },
+  { title:()=>'Settle a Bet',
+    post:(i,s,n)=>'"My brother-in-law swears there’s not a single '+i.name.toLowerCase()+' left at '+s.name+'. Prove him wrong. — '+n+'"',
+    accept:(i,s,n)=>n+' grins. "He’s insufferable. Make it hurt."',
+    done:(i,s,n)=>n+' photographs it from six angles and forwards every one of them to the brother-in-law. Money well spent, they say.' },
+];
+function generateNotice(siteId){
+  const site = SITES[siteId];
+  const pool = Object.keys(site.finds).filter(k=>site.finds[k]>0 && ITEMS[k] && ITEMS[k].kind!=='trash');
+  if(!pool.length) return null;
+  const key = pool[Math.floor(Math.random()*pool.length)];
+  const item = ITEMS[key];
+  const name = NOTICE_NAMES[site.country][Math.floor(Math.random()*NOTICE_NAMES[site.country].length)];
+  const t = NOTICE_TEMPLATES[Math.floor(Math.random()*NOTICE_TEMPLATES.length)];
+  const reward = Math.max(60, Math.round((item.val[0]+item.val[1])/2 * (2+Math.random()*1.5) / 10)*10);
+  state.noticeSeq = (state.noticeSeq||0)+1;
+  return { id:'gen'+state.noticeSeq, site:siteId, targetItem:key, zone:null, reward, rep:1,
+    title:t.title(item,site,name), post:t.post(item,site,name), accept:t.accept(item,site,name), done:t.done(item,site,name) };
+}
+function freshenNoticeBoard(){
+  state.genMissions = state.genMissions||[];
+  // completed generated notices come down off the board
+  state.genMissions = state.genMissions.filter(m=>{
+    if(state.missions[m.id]==='done'){ delete state.missions[m.id]; return false; }
+    return true;
+  });
+  // two new posts: one from the country you're in, one from anywhere
+  const country = (SITES[state.location]||SITES.au_park).country;
+  const local = SITE_ORDER.filter(id=>SITES[id].country===country);
+  const picks = [ local[Math.floor(Math.random()*local.length)],
+                  SITE_ORDER[Math.floor(Math.random()*SITE_ORDER.length)] ];
+  picks.forEach(id=>{ const m = generateNotice(id); if(m) state.genMissions.push(m); });
+  // oldest unclaimed posts drift off so the board stays readable
+  const open = ()=>state.genMissions.filter(m=>!state.missions[m.id]);
+  while(open().length > 8) state.genMissions.splice(state.genMissions.indexOf(open()[0]), 1);
+}
+
 function renderMissions(){
   const mb = $('#missionBoard'); mb.innerHTML='';
-  MISSIONS.forEach(m=>{
+  allMissions().forEach(m=>{
     const st = state.missions[m.id] || 'open';
     const note = document.createElement('div');
     note.className = 'note '+(st==='accepted'?'accepted':st==='done'?'completed':'');
@@ -2479,8 +2541,12 @@ function enterField(){
   scene.add(coilShadow);
   // targets
   seedTargets(site);
+  // subtle ground-conditions dots, bottom left: more lit = busier ground
+  const lit = digDensity>=5? 5 : digDensity>=3? 4 : digDensity>=1.45? 3 : digDensity>=1.3? 2 : 1;
+  const dd = $('#densityDots'); dd.innerHTML='';
+  for(let i=0;i<5;i++){ const d=document.createElement('i'); if(i>=lit) d.className='off'; dd.appendChild(d); }
   // mission flag
-  const mission = MISSIONS.find(m=>m.site===site.id && state.missions[m.id]==='accepted');
+  const mission = allMissions().find(m=>m.site===site.id && state.missions[m.id]==='accepted');
   if(mission && mission.zone && site['_'+mission.zone]){
     const p = site['_'+mission.zone];
     const flag = new THREE.Group();
@@ -2554,9 +2620,8 @@ function seedTargets(site){
     const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
     targets.push({ x, z, depth, key, dug:false, special:tag });
   });
-  // guaranteed mission target
-  const mission = MISSIONS.find(m=>m.site===site.id && state.missions[m.id]==='accepted');
-  if(mission){
+  // guaranteed mission targets — one per accepted mission on this site
+  for(const mission of allMissions().filter(m=>m.site===site.id && state.missions[m.id]==='accepted')){
     const zone = mission.zone && site['_'+mission.zone];
     const x = zone? zone.x + (rng()-0.5)*14 : (rng()-0.5)*80;
     const z = zone? zone.z + (rng()-0.5)*14 : (rng()-0.5)*80;
@@ -2902,7 +2967,7 @@ function reveal(t){
   const h = WORLD.makeHole();
   h.position.set(t.x, world.heightAt(t.x,t.z)+0.02, t.z);
   holes.add(h);
-  const mission = t.mission && MISSIONS.find(m=>m.id===t.mission);
+  const mission = t.mission && allMissions().find(m=>m.id===t.mission);
   const name = mission?.renameFind || item.name;
   const value = mission ? 0 : +(item.val[0] + Math.random()*(item.val[1]-item.val[0])).toFixed(2);
   revealTarget = { t, item, name, value, mission };
@@ -3421,6 +3486,7 @@ $('#btnHome').addEventListener('click', ()=>{
   $('#resultsModal').hidden = true;
   state.day++;
   marketWalk();
+  freshenNoticeBoard();
   save();
   teardownField();
   renderCamp(); show('camp');
@@ -3546,6 +3612,8 @@ window.DBG = {
   key(code,down=true){ keys[code]=down; },
   look(y,p){ yaw=y; pitch=p; },
   pos(){ return {x:player.x, z:player.z, stamina:player.stamina, signal:signal.strength, targets:targets.filter(t=>!t.dug).length}; },
+  missionTargets(){ return targets.filter(t=>t.mission).map(t=>t.mission); },
+  freshen(){ freshenNoticeBoard(); },
   nearest(){ let best=1e9,bt=null; const cp=coilPoint(); for(const t of targets){ if(t.dug)continue; const d=Math.hypot(cp.x-t.x,cp.z-t.z); if(d<best){best=d;bt=t;} } return bt&&{d:best,key:bt.key,depth:bt.depth,x:bt.x,z:bt.z}; },
   teleport(x,z){ player.x=x; player.z=z; },
   coil(){ return { x: coilWorld.x, z: coilWorld.z, ok: coilWorld.ok, swing: swingAmp, gap: coilGap }; },

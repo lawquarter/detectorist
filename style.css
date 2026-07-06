@@ -233,7 +233,11 @@ button{ font-family:var(--disp); }
 #boxCue{ flex:1; color:var(--brass-hi); font-size:14px; min-height:20px; }
 .box-keys{ margin-top:8px; color:var(--dim); font-size:13px; letter-spacing:0.08em; }
 .box-keys b{ color:var(--bone); font-family:var(--mono); background:#31250f; padding:1px 7px; border-radius:3px; border:1px solid #4d3f26; }
-#toasts{ position:absolute; left:18px; bottom:18px; display:flex; flex-direction:column; gap:6px; max-width:320px; }
+#toasts{ position:absolute; left:18px; bottom:34px; display:flex; flex-direction:column; gap:6px; max-width:320px; }
+.density-dots{ position:absolute; left:20px; bottom:12px; display:flex; gap:5px; opacity:0.4; }
+.density-dots i{ width:5px; height:5px; border-radius:50%; background:var(--brass); display:block; }
+.density-dots i.off{ background:#ffffff1e; }
+body.touch .density-dots{ left:24px; bottom:152px; }
 .toast{ background:rgba(12,9,4,0.72); border:1px solid #ffffff26; border-left:3px solid var(--brass);
   padding:8px 13px; border-radius:4px; font-size:13.5px; animation:slidein .25s; backdrop-filter:blur(3px); }
 .toast.bucket{ border-left-color:var(--brass-hi); background:rgba(60,45,8,0.85); }
