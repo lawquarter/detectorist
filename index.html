@@ -666,6 +666,12 @@ const ITEMS = {
     blurb:'Twelve grams of Victorian gold, still wearing red clay. Your hands are shaking.' },
   specimen: { name:'Quartz-gold specimen', kind:'gold', cond:12, jit:4, depth:[15,40], val:[200,420], w:0.6, icon:'quartz', tint:'#e8e2d4', goldOnly:true,
     blurb:'Gold veined through ironstone quartz. Worth more as a specimen than melt.' },
+  nug90: { name:'Gold nugget 87 g', kind:'gold', cond:32, depth:[25,55], val:[10500,13500], w:0, icon:'nug', tint:'#ffd24a', bucket:'bignugget', rare:true, goldOnly:true,
+    blurb:'Nearly three ounces of solid Victorian gold. You sit down in the dirt and just look at it for a while.' },
+  nug400: { name:'Gold nugget 412 g', kind:'gold', cond:40, depth:[30,60], val:[50000,62000], w:0, icon:'nug', tint:'#ffd24a', bucket:'bignugget', rare:true, goldOnly:true,
+    blurb:'A kilo-class heart-stopper, waterworn and butter-yellow. Finds like this make the evening news.' },
+  nug25k: { name:'The Golden Gully Monster — 25 kg', kind:'gold', cond:55, depth:[45,60], val:[3900000,4200000], w:0, icon:'nug', tint:'#ffd24a', bucket:'monster', rare:true, goldOnly:true,
+    blurb:'Twenty-five kilograms of gold in one lump — Welcome Stranger country delivers again. Your knees give out. The detector keeps screaming.' },
   // --- UK ---
   romanae:  { name:'Roman bronze (sestertius)', kind:'coin', c:'UK', cond:40, jit:5, depth:[12,32], val:[25,90], w:2.5, icon:'coinrough', tint:'#7d8a5a',
     blurb:'Second-century bronze, green with patina. An emperor’s face under your thumb.' },
@@ -720,6 +726,7 @@ const ITEMS = {
 const BUCKET = [
   { id:'sovereign',  item:'sovereign',  label:'Dig a gold sovereign',            where:'Australian parks & goldfields' },
   { id:'bignugget',  item:'nug12',      label:'Unearth a 10 g+ gold nugget',     where:'Victorian goldfields' },
+  { id:'monster',    item:'nug25k',     label:'Legend: dig a 25 kg monster nugget', where:'Victorian goldfields' },
   { id:'diamondring',item:'ring18ct',   label:'Rescue a diamond ring',           where:'Any beach' },
   { id:'denarius',   item:'denarius',   label:'Find a Roman silver denarius',    where:'English farmland' },
   { id:'hammered',   item:'hammered',   label:'Dig hammered medieval silver',    where:'English farmland' },
@@ -735,14 +742,14 @@ const BUCKET = [
 const SITES = {
   au_park: { id:'au_park', country:'AU', flag:'🇦🇺', name:'Federation Park', region:'Sydney, NSW',
     travel:{ mode:'walk', cost:0, label:'Walk from home' },
-    terrain:'park', time:'afternoon', targets:120,
+    terrain:'park', time:'afternoon', targets:132,
     desc:'Your local park since 1901. Mown kikuyu over old picnic ground — pre-decimal silver under the fig trees.',
     finds:{ au2d:1, au1d:1, au50c:1, au20c:1, aupenny:1, auhalf:1, authree:1, ausix:1, aushil:1, auflorin:1, sovereign:0.5, colbutton:0.7, matchbox:1, nail:1, bottlecap:1, ringpull:1, foil:1, canslaw:1 },
     hazards:['karen','ranger','magpie'],
     prohibited:{ label:'War Memorial precinct', reason:'Detecting is prohibited around the memorial. Rangers patrol it.' } },
   au_beach: { id:'au_beach', country:'AU', flag:'🇦🇺', name:'Kingfisher Beach', region:'NSW South Coast',
     travel:{ mode:'bus', cost:15, label:'Bus — 2 hrs' },
-    terrain:'beach', time:'sunrise', targets:220,
+    terrain:'beach', time:'sunrise', targets:242,
     desc:'Low tide at first light: rolling swell, wet sand laid bare, and the towel line seeded with a summer of losses.',
     finds:{ au2d:1.2, au1d:1.2, au50c:1, ring9ct:1, ring18ct:1, silchain:1, earring:1, sinker:1.4, bottlecap:0.8, ringpull:1.4, foil:1, cladq:0 },
     hazards:['karen','seagull'],
@@ -750,16 +757,17 @@ const SITES = {
     prohibited:{ label:'Dune revegetation zone', reason:'Fenced dune rehab area. Council fines for entry.' } },
   au_gold: { id:'au_gold', country:'AU', flag:'🇦🇺', name:'Golden Gully', region:'Golden Triangle, VIC',
     travel:{ mode:'train', cost:60, label:'Train + lift — overnight' },
-    terrain:'goldfields', time:'harshnoon', targets:90,
+    terrain:'goldfields', time:'harshnoon', targets:99,
     permit:'minersRight',
     desc:'Ironbark, red clay and 160-year-old shafts. Mineralised ground that laughs at coin machines — bring a gold detector.',
     finds:{ nug05:1, nug3:1, nug12:1, specimen:1, sovereign:0.35, pickhead:1, horseshoe:1, colbutton:0.6, nail:1.4, shotshell:1, ausix:0.3 },
+    guaranteed:['nug90','nug400','nug25k'],
     hazards:['snake','ranger'],
     mineralised:true,
     prohibited:{ label:'Historic mine shafts', reason:'Unsafe shafts, heritage-protected workings. Keep out.' } },
   uk_farm: { id:'uk_farm', country:'UK', flag:'🇬🇧', name:'Wheatfield Farm', region:'Suffolk, England',
     travel:{ mode:'flight', cost:1400, label:'Flight SYD→LHR + hire car' },
-    terrain:'farm', time:'cloudy', targets:130,
+    terrain:'farm', time:'cloudy', targets:143,
     permission:'farmer',
     desc:'Stubble and plough over a Roman road line. Farmer Giles wants a knock on the door — and a fair split.',
     finds:{ romanae:1, denarius:1, hammered:1, halfgroat:1, cartwheel:1, vicpenny:1, ukshil:1, musket:1.2, buckle:1, livery:1, leadtoken:1, posyring:1, nail:1.3, shotshell:1.2, canslaw:0.5 },
@@ -767,41 +775,42 @@ const SITES = {
     soft:'plough' },
   uk_green: { id:'uk_green', country:'UK', flag:'🇬🇧', name:'Nettlebury Green', region:'Suffolk, England',
     travel:{ mode:'bus', cost:20, label:'Local bus — 40 min', requiresCountry:'UK' },
-    terrain:'green', time:'morning', targets:100,
+    terrain:'green', time:'morning', targets:110,
     desc:'A village green with a Norman church and five centuries of fairs, markets and dropped change.',
     finds:{ vicpenny:1.3, ukshil:1, cartwheel:0.7, halfgroat:0.5, hammered:0.4, livery:1, buckle:0.8, leadtoken:1, foil:1, ringpull:1, bottlecap:1, nail:1 },
     hazards:['karen'],
     prohibited:{ label:'Churchyard', reason:'Consecrated ground. Absolutely no detecting.' } },
   us_park: { id:'us_park', country:'US', flag:'🇺🇸', name:'Liberty Park', region:'New England, USA',
     travel:{ mode:'flight', cost:1600, label:'Flight → Boston + drive' },
-    terrain:'uspark', time:'goldenhour', targets:120,
+    terrain:'uspark', time:'goldenhour', targets:132,
     desc:'Elm-lined common on a 1770s tavern site. Wheaties on top, colonial coppers in the subsoil.',
     finds:{ cladq:1.2, wheatie:1.2, indianhead:1, mercdime:1, barberq:0.8, buffnick:1, largecent:0.6, colonial:1, minie:1, usbutton:1, nail:1.2, bottlecap:1, ringpull:1, foil:1 },
     hazards:['karen','ranger'],
     prohibited:{ label:'Bandstand heritage lawn', reason:'Historic register lawn — city ordinance, no digging.' } },
   us_beach: { id:'us_beach', country:'US', flag:'🇺🇸', name:'Cape Wesset Beach', region:'Massachusetts, USA',
     travel:{ mode:'bus', cost:25, label:'Regional bus — 90 min', requiresCountry:'US' },
-    terrain:'beach', time:'dusk', targets:100,
+    terrain:'beach', time:'dusk', targets:110,
     desc:'Cold Atlantic surf and a boardwalk crowd. Silver rings in the wet sand, clad by the bucketful.',
     finds:{ cladq:1.6, mercdime:0.5, silring:1, ring9ct:0.8, ring18ct:0.7, silchain:1, sinker:1.2, ringpull:1.3, bottlecap:1, foil:1 },
     hazards:['seagull','karen'],
     soft:'drysand' },
   au_show: { id:'au_show', country:'AU', flag:'🇦🇺', name:'Boolara Showground', region:'Central West, NSW',
     travel:{ mode:'bus', cost:25, label:'Bus — 4 hrs' },
-    terrain:'park', time:'goldenhour', targets:120,
+    terrain:'park', time:'goldenhour', targets:132,
     desc:'Country showground since 1888. A century of sideshows, wood-chops and dropped change under the kikuyu.',
     finds:{ aupenny:1.6, auhalf:1.2, authree:1.3, ausix:1, aushil:0.9, auflorin:0.8, sovereign:0.7, colbutton:1, matchbox:1.4, horseshoe:1.2, au2d:0.5, au1d:0.5, nail:1.2, bottlecap:1.2, ringpull:1, foil:1, shotshell:0.6 },
+    guaranteed:['sovereign'],
     hazards:['karen','ranger','magpie'],
     prohibited:{ label:'Heritage grandstand', reason:'The 1902 grandstand precinct is heritage listed. No digging.' } },
   uk_pasture: { id:'uk_pasture', country:'UK', flag:'🇬🇧', name:'Sheepwash Pasture', region:'Suffolk, England',
     travel:{ mode:'bus', cost:15, label:'Lane walk — 20 min', requiresCountry:'UK' },
-    terrain:'pasture', time:'morning', targets:120,
+    terrain:'pasture', time:'morning', targets:132,
     desc:'Ancient sheep pasture on the medieval fair site — never ploughed, never detected. Giles put in a word with his neighbour.',
     finds:{ hammered:1.6, halfgroat:1.4, denarius:0.5, romanae:0.7, cartwheel:0.8, vicpenny:1, ukshil:0.9, buckle:1.2, livery:1, leadtoken:1.2, musket:1, posyring:1, nail:1, bottlecap:0.6, foil:0.6 },
     hazards:['karen'] },
   us_battle: { id:'us_battle', country:'US', flag:'🇺🇸', name:'Cedar Run Field', region:'Virginia, USA',
     travel:{ mode:'bus', cost:40, label:'Drive — 2 hrs', requiresCountry:'US' },
-    terrain:'pasture', time:'dusk', targets:120,
+    terrain:'pasture', time:'dusk', targets:132,
     desc:'An 1862 skirmish line on private pasture, written permission in your pocket. The ground still hums with lead.',
     finds:{ minie:2.2, usbutton:1.6, buckle:1, largecent:0.6, colonial:0.35, indianhead:0.7, wheatie:0.5, horseshoe:1.2, shotshell:1, nail:1.6, canslaw:0.5 },
     hazards:['ranger'],
@@ -1987,7 +1996,7 @@ const DEFAULT_STATE = () => ({
   packSlots:6, loadout:['trowel'],
   pouch:[], cabinet:[],
   bucket:{}, permits:{}, farmPermission:null,
-  missions:{}, fines:0, karensSurvived:0,
+  missions:{}, fines:0, karensSurvived:0, specials:{},
   market:{ g:1, s:1, pg:1, ps:1 },
 });
 let state = DEFAULT_STATE();
@@ -2013,7 +2022,7 @@ function travelLabel(siteId){
 }
 
 /* ---------- precious metal spot market ---------- */
-const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','specimen'];
+const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','nug90','nug400','nug25k','specimen'];
 const SILVER_KEYS = ['authree','ausix','aushil','auflorin','denarius','hammered','halfgroat','ukshil','mercdime','barberq','silring','silchain'];
 const SPOT_BASE = { g:165, s:1.65 }; // AUD per gram
 function metalMult(key){
@@ -2164,7 +2173,7 @@ function renderMap(){
       '<circle class="pin" cx="'+x+'" cy="'+y+'" r="8"/>' +
       (id===state.location? '<circle cx="'+x+'" cy="'+y+'" r="3.4" fill="#ffd24a"/>' : '') +
       '<text x="'+(x+13)+'" y="'+(y-6)+'">'+site.name+'</text>' +
-      '<text class="cost" x="'+(x+13)+'" y="'+(y+9)+'">'+(id===state.location?'HERE':fmt$(cost))+'</text>';
+      '<text class="cost" x="'+(x+13)+'" y="'+(y+9)+'">'+(id===state.location?'HERE':cost?fmt$(cost):'FREE')+'</text>';
     g.addEventListener('click', ()=>selectSite(id));
     svg.appendChild(g);
   }
@@ -2188,11 +2197,11 @@ function selectSite(id){
     '<h2>'+site.name+'</h2><div class="region">'+site.region+' — '+travelLabel(id)+'</div>' +
     '<div class="badges">'+badges.join('')+'</div>' +
     '<p>'+site.desc+'</p>' +
-    '<p><b>'+(id===state.location? 'You’re camped here.' : 'Travel: '+fmt$(cost))+'</b>' +
+    '<p><b>'+(id===state.location? 'You’re camped here.' : 'Travel: '+(cost? fmt$(cost) : 'free'))+'</b>' +
     (cost>state.money? ' <span style="color:#8a2a1a">— you can’t afford this yet.</span>':'') + '</p>';
   const go = $('#btnGo');
   go.disabled = cost>state.money;
-  go.textContent = (id===state.location? 'HEAD OUT →' : 'TRAVEL & DETECT → '+(cost?fmt$(cost):''));
+  go.textContent = (id===state.location? 'HEAD OUT →' : 'TRAVEL & DETECT → '+(cost?fmt$(cost):'FREE'));
 }
 
 /* ---------- shop ---------- */
@@ -2251,6 +2260,22 @@ function renderShop(){
       b.disabled = state.money < d.price;
       b.onclick = ()=>{ state.money-=d.price; state.owned[id]=true; state.detector=id; AUDIO.coin(); save(); renderCamp(); toast(d.name+' added to the kit'); };
       card.appendChild(b);
+    } else if(d.price>0 && DETECTOR_ORDER.filter(k=>state.owned[k]).length>1){
+      const tradeIn = Math.round(d.price*0.6);
+      const s = document.createElement('button'); s.className='btn'; s.textContent='SELL — '+fmt$(tradeIn);
+      s.title = 'Trade it in second-hand';
+      s.onclick = async ()=>{
+        const ok = await modal({ icon:'🔁', title:'Sell the '+d.name+'?',
+          body:'<p>The dealer looks it over, checks the coil for wobble, and offers <b>'+fmt$(tradeIn)+'</b> — second-hand is second-hand.</p>',
+          options:[{key:'yes', label:'Shake on it', gold:true},{key:'no', label:'Keep it'}] });
+        if(ok!=='yes') return;
+        delete state.owned[id];
+        if(state.detector===id) state.detector = DETECTOR_ORDER.find(k=>state.owned[k]);
+        state.money += tradeIn;
+        AUDIO.coin(); save(); renderCamp();
+        toast('Sold the '+d.name+' for '+fmt$(tradeIn));
+      };
+      card.appendChild(s);
     }
     dets.appendChild(card);
   });
@@ -2512,6 +2537,15 @@ function seedTargets(site){
     const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
     targets.push({ x, z, depth, key, dug:false });
   }
+  // guaranteed special finds — seeded until dug once, then gone for this save
+  (site.guaranteed||[]).forEach(key=>{
+    const tag = site.id+':'+key;
+    if(state.specials && state.specials[tag]) return;
+    const item = ITEMS[key];
+    const x = (rng()-0.5)*WORLD.SIZE*0.8, z = (rng()-0.5)*WORLD.SIZE*0.8;
+    const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
+    targets.push({ x, z, depth, key, dug:false, special:tag });
+  });
   // guaranteed mission target
   const mission = MISSIONS.find(m=>m.site===site.id && state.missions[m.id]==='accepted');
   if(mission){
@@ -2791,8 +2825,9 @@ function startDig(target){
   if(world.inProhibited(player.x, player.z)){
     toast('You really shouldn’t dig here…', 'bad'); flagTime += 8;
   }
-  // snake ambush in goldfields
-  if(site.hazards?.includes('snake') && Math.random()<0.09){
+  // snake ambush in goldfields — once per target; the find stays put in the ground
+  if(site.hazards?.includes('snake') && !snakeObj && !target.snakeSeen && Math.random()<0.09){
+    target.snakeSeen = true;
     snakeEvent(); return;
   }
   document.exitPointerLock?.();
@@ -2855,6 +2890,7 @@ let revealTarget = null;
 function reveal(t){
   const item = ITEMS[t.key];
   t.dug = true;
+  if(t.special){ state.specials = state.specials||{}; state.specials[t.special] = true; }
   const h = WORLD.makeHole();
   h.position.set(t.x, world.heightAt(t.x,t.z)+0.02, t.z);
   holes.add(h);
@@ -3225,7 +3261,8 @@ async function snakeEvent(){
     options:[{label:'Back away slowly', gold:true}]});
   player.x -= Math.sin(yaw)*-6; player.z -= Math.cos(yaw)*-6;
   player.stamina = Math.max(0, player.stamina-5);
-  setTimeout(()=>{ if(snakeObj){ scene.remove(snakeObj); snakeObj=null; } }, 9000);
+  setTimeout(()=>{ if(snakeObj){ scene.remove(snakeObj); snakeObj=null;
+    if(running) toast('The tiger snake pours off into the ironbark. That signal is still in the ground where you left it.'); } }, 9000);
 }
 function updateSnake(t){
   if(!snakeObj) return;
@@ -3466,10 +3503,10 @@ $('#btnGo').addEventListener('click', ()=>{
   const id = selectedSite || state.location;
   const cost = travelCost(id);
   if(cost>state.money) return;
-  if(cost>0){
+  if(id !== state.location){
     state.money -= cost;
     state.location = id; state.country = SITES[id].country;
-    toast('Travelled to '+SITES[id].name+' — '+fmt$(cost));
+    toast('Travelled to '+SITES[id].name + (cost? ' — '+fmt$(cost) : ' — free'));
   }
   save();
   enterField();
