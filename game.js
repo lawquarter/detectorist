@@ -15,7 +15,7 @@ const DEFAULT_STATE = () => ({
   packSlots:6, loadout:['trowel'],
   pouch:[], cabinet:[],
   bucket:{}, permits:{}, farmPermission:null,
-  missions:{}, fines:0, karensSurvived:0,
+  missions:{}, fines:0, karensSurvived:0, specials:{},
   market:{ g:1, s:1, pg:1, ps:1 },
 });
 let state = DEFAULT_STATE();
@@ -41,7 +41,7 @@ function travelLabel(siteId){
 }
 
 /* ---------- precious metal spot market ---------- */
-const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','specimen'];
+const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','nug90','nug400','nug25k','specimen'];
 const SILVER_KEYS = ['authree','ausix','aushil','auflorin','denarius','hammered','halfgroat','ukshil','mercdime','barberq','silring','silchain'];
 const SPOT_BASE = { g:165, s:1.65 }; // AUD per gram
 function metalMult(key){
@@ -192,7 +192,7 @@ function renderMap(){
       '<circle class="pin" cx="'+x+'" cy="'+y+'" r="8"/>' +
       (id===state.location? '<circle cx="'+x+'" cy="'+y+'" r="3.4" fill="#ffd24a"/>' : '') +
       '<text x="'+(x+13)+'" y="'+(y-6)+'">'+site.name+'</text>' +
-      '<text class="cost" x="'+(x+13)+'" y="'+(y+9)+'">'+(id===state.location?'HERE':fmt$(cost))+'</text>';
+      '<text class="cost" x="'+(x+13)+'" y="'+(y+9)+'">'+(id===state.location?'HERE':cost?fmt$(cost):'FREE')+'</text>';
     g.addEventListener('click', ()=>selectSite(id));
     svg.appendChild(g);
   }
@@ -216,11 +216,11 @@ function selectSite(id){
     '<h2>'+site.name+'</h2><div class="region">'+site.region+' — '+travelLabel(id)+'</div>' +
     '<div class="badges">'+badges.join('')+'</div>' +
     '<p>'+site.desc+'</p>' +
-    '<p><b>'+(id===state.location? 'You’re camped here.' : 'Travel: '+fmt$(cost))+'</b>' +
+    '<p><b>'+(id===state.location? 'You’re camped here.' : 'Travel: '+(cost? fmt$(cost) : 'free'))+'</b>' +
     (cost>state.money? ' <span style="color:#8a2a1a">— you can’t afford this yet.</span>':'') + '</p>';
   const go = $('#btnGo');
   go.disabled = cost>state.money;
-  go.textContent = (id===state.location? 'HEAD OUT →' : 'TRAVEL & DETECT → '+(cost?fmt$(cost):''));
+  go.textContent = (id===state.location? 'HEAD OUT →' : 'TRAVEL & DETECT → '+(cost?fmt$(cost):'FREE'));
 }
 
 /* ---------- shop ---------- */
@@ -279,6 +279,22 @@ function renderShop(){
       b.disabled = state.money < d.price;
       b.onclick = ()=>{ state.money-=d.price; state.owned[id]=true; state.detector=id; AUDIO.coin(); save(); renderCamp(); toast(d.name+' added to the kit'); };
       card.appendChild(b);
+    } else if(d.price>0 && DETECTOR_ORDER.filter(k=>state.owned[k]).length>1){
+      const tradeIn = Math.round(d.price*0.6);
+      const s = document.createElement('button'); s.className='btn'; s.textContent='SELL — '+fmt$(tradeIn);
+      s.title = 'Trade it in second-hand';
+      s.onclick = async ()=>{
+        const ok = await modal({ icon:'🔁', title:'Sell the '+d.name+'?',
+          body:'<p>The dealer looks it over, checks the coil for wobble, and offers <b>'+fmt$(tradeIn)+'</b> — second-hand is second-hand.</p>',
+          options:[{key:'yes', label:'Shake on it', gold:true},{key:'no', label:'Keep it'}] });
+        if(ok!=='yes') return;
+        delete state.owned[id];
+        if(state.detector===id) state.detector = DETECTOR_ORDER.find(k=>state.owned[k]);
+        state.money += tradeIn;
+        AUDIO.coin(); save(); renderCamp();
+        toast('Sold the '+d.name+' for '+fmt$(tradeIn));
+      };
+      card.appendChild(s);
     }
     dets.appendChild(card);
   });
@@ -540,6 +556,15 @@ function seedTargets(site){
     const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
     targets.push({ x, z, depth, key, dug:false });
   }
+  // guaranteed special finds — seeded until dug once, then gone for this save
+  (site.guaranteed||[]).forEach(key=>{
+    const tag = site.id+':'+key;
+    if(state.specials && state.specials[tag]) return;
+    const item = ITEMS[key];
+    const x = (rng()-0.5)*WORLD.SIZE*0.8, z = (rng()-0.5)*WORLD.SIZE*0.8;
+    const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
+    targets.push({ x, z, depth, key, dug:false, special:tag });
+  });
   // guaranteed mission target
   const mission = MISSIONS.find(m=>m.site===site.id && state.missions[m.id]==='accepted');
   if(mission){
@@ -819,8 +844,9 @@ function startDig(target){
   if(world.inProhibited(player.x, player.z)){
     toast('You really shouldn’t dig here…', 'bad'); flagTime += 8;
   }
-  // snake ambush in goldfields
-  if(site.hazards?.includes('snake') && Math.random()<0.09){
+  // snake ambush in goldfields — once per target; the find stays put in the ground
+  if(site.hazards?.includes('snake') && !snakeObj && !target.snakeSeen && Math.random()<0.09){
+    target.snakeSeen = true;
     snakeEvent(); return;
   }
   document.exitPointerLock?.();
@@ -883,6 +909,7 @@ let revealTarget = null;
 function reveal(t){
   const item = ITEMS[t.key];
   t.dug = true;
+  if(t.special){ state.specials = state.specials||{}; state.specials[t.special] = true; }
   const h = WORLD.makeHole();
   h.position.set(t.x, world.heightAt(t.x,t.z)+0.02, t.z);
   holes.add(h);
@@ -1253,7 +1280,8 @@ async function snakeEvent(){
     options:[{label:'Back away slowly', gold:true}]});
   player.x -= Math.sin(yaw)*-6; player.z -= Math.cos(yaw)*-6;
   player.stamina = Math.max(0, player.stamina-5);
-  setTimeout(()=>{ if(snakeObj){ scene.remove(snakeObj); snakeObj=null; } }, 9000);
+  setTimeout(()=>{ if(snakeObj){ scene.remove(snakeObj); snakeObj=null;
+    if(running) toast('The tiger snake pours off into the ironbark. That signal is still in the ground where you left it.'); } }, 9000);
 }
 function updateSnake(t){
   if(!snakeObj) return;
@@ -1494,10 +1522,10 @@ $('#btnGo').addEventListener('click', ()=>{
   const id = selectedSite || state.location;
   const cost = travelCost(id);
   if(cost>state.money) return;
-  if(cost>0){
+  if(id !== state.location){
     state.money -= cost;
     state.location = id; state.country = SITES[id].country;
-    toast('Travelled to '+SITES[id].name+' — '+fmt$(cost));
+    toast('Travelled to '+SITES[id].name + (cost? ' — '+fmt$(cost) : ' — free'));
   }
   save();
   enterField();

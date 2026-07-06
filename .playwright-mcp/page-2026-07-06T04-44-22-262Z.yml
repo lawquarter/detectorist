@@ -1,0 +1,20 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: A FIRST-PERSON DETECTING ADVENTURE
+    - heading "THE DETECTORIST" [level=1] [ref=e5]:
+      - text: THE
+      - text: DETECTORIST
+    - generic [ref=e6]: Swing low. Dig honest. Fill your holes.
+    - generic [ref=e7]:
+      - paragraph [ref=e8]: "You’ve got a second-hand Meridian Drifter, a plastic trowel and $2,000 of long-service leave money. Ahead of you: parks full of pre-decimal silver, beaches seeded with lost gold, the Victorian goldfields, English farmland over a Roman road, and the old commons of New England."
+      - paragraph [ref=e9]: Karens, council rangers, swooping magpies and tiger snakes sold separately.
+    - button "START DETECTING" [ref=e10] [cursor=pointer]
+    - generic [ref=e11]:
+      - generic [ref=e12]: WASD walk (coil swings itself)
+      - generic [ref=e13]: MOUSE look
+      - generic [ref=e14]: SHIFT pinpoint
+      - generic [ref=e15]: E dig
+      - generic [ref=e16]: R eat
+      - generic [ref=e17]: H head home
+      - generic [ref=e18]: TAB menu
+  - text: ▲
