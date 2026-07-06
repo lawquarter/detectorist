@@ -2425,6 +2425,7 @@ let running=false, locked=false, yaw=0, pitch=0;
 const keys = {};
 let player = { x:0, z:0, stamina:100, pouch:0 };
 let targets = [];       // {x,z,depth,key,dug,mission}
+let digDensity = 1;     // finds density for this dig session, re-rolled each visit
 let holes = null;
 let detectorModel = null;
 let npc = null;         // active event npc {obj, kind, t, phase}
@@ -2515,7 +2516,9 @@ function enterField(){
   show('field');
   $('#hud').hidden = false;
   $('#touchui').hidden = !IS_TOUCH;
-  pauseTitle('READY', site.desc + (permissionActive? '' : ' — You need permission first: walk to the farmhouse and knock (E at the door).'));
+  const luckNote = digDensity >= 5 ? ' The ground is absolutely humming today — signals everywhere.'
+    : digDensity >= 3 ? ' Something about today feels lucky.' : '';
+  pauseTitle('READY', site.desc + luckNote + (permissionActive? '' : ' — You need permission first: walk to the farmhouse and knock (E at the door).'));
   running = true;
   AUDIO.ambient(site.terrain==='beach'? 0.05 : 0.015);
   if(!animating) animate();
@@ -2531,7 +2534,12 @@ function seedTargets(site){
     for(const t of table){ r-=t.w; if(r<=0) return t.k; }
     return table[0].k;
   }
-  for(let i=0;i<site.targets;i++){
+  // Density re-rolls every dig session (not per day): a touch above the old
+  // baseline most visits, with occasional 3x hot days and rare 5x bonanzas.
+  const luck = Math.random();
+  digDensity = luck < 0.05 ? 5 : luck < 0.17 ? 3 : 1.15 + Math.random()*0.45;
+  const count = Math.round(site.targets * digDensity);
+  for(let i=0;i<count;i++){
     const key = pick(); const item = ITEMS[key];
     const x = (rng()-0.5)*WORLD.SIZE*0.88, z = (rng()-0.5)*WORLD.SIZE*0.88;
     const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
