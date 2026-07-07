@@ -25,7 +25,9 @@ function load(){ try{ const s = localStorage.getItem(SAVE_KEY); if(s){ state = O
 const fmt$ = n => '$' + (Math.round(n*100)/100).toLocaleString('en-AU', {minimumFractionDigits: (n%1)?2:0, maximumFractionDigits:2});
 
 const FLIGHTS = { 'AU-UK':1400,'AU-US':1600,'UK-US':900,'UK-AU':1400,'US-AU':1600,'US-UK':900 };
-const LOCAL_COST = { au_park:0, au_beach:15, au_gold:60, au_show:25, uk_farm:30, uk_green:20, uk_pasture:15, us_park:25, us_beach:25, us_battle:40 };
+const LOCAL_COST = { au_park:0, au_beach:15, au_gold:60, au_show:25, au_creek:20, au_ghost:70,
+  uk_farm:30, uk_green:20, uk_pasture:15, uk_cove:35, uk_moor:30,
+  us_park:25, us_beach:25, us_battle:40, us_ghost:60, us_lake:35 };
 function travelCost(siteId){
   const site = SITES[siteId];
   let c = LOCAL_COST[siteId];
@@ -164,35 +166,48 @@ function renderCamp(){
 }
 
 /* ---------- world map ---------- */
+// [x, y, optional 'L' to hang the label on the left]
 const MAP_NODES = {
-  au_park:[708,318], au_beach:[762,342], au_gold:[688,362], au_show:[668,300],
-  uk_farm:[452,96], uk_green:[430,120], uk_pasture:[470,116],
-  us_park:[175,138], us_beach:[214,158], us_battle:[160,172],
+  au_park:[716,396,'L'], au_beach:[792,428,'L'], au_gold:[664,452], au_show:[636,356,'L'], au_creek:[756,332,'L'], au_ghost:[612,490],
+  uk_farm:[512,96], uk_green:[444,150], uk_pasture:[556,118], uk_cove:[412,182], uk_moor:[476,58],
+  us_park:[216,138], us_beach:[280,166], us_battle:[236,224], us_ghost:[96,196], us_lake:[176,92],
 };
 function renderMap(){
   const svg = $('#worldmap');
   svg.innerHTML =
-    '<path class="land" d="M60,90 Q100,55 170,60 Q240,50 260,80 Q290,70 300,100 Q310,140 270,160 Q250,200 210,190 Q170,215 140,185 Q90,180 75,140 Q50,115 60,90 Z"/>' +
-    '<path class="land" d="M416,70 Q430,52 448,60 Q470,55 472,80 Q488,95 470,112 Q478,132 458,138 Q436,148 424,130 Q406,120 412,98 Q408,80 416,70 Z"/>' +
-    '<path class="land" d="M470,150 Q520,130 560,150 Q610,145 640,175 Q660,210 640,240 Q610,260 580,245 Q540,255 520,225 Q480,210 470,180 Z" opacity="0.5"/>' +
-    '<path class="land" d="M640,290 Q690,270 740,285 Q790,290 800,325 Q795,360 750,372 Q700,385 665,365 Q630,345 640,290 Z"/>' +
-    '<path class="land" d="M818,352 Q838,342 848,356 Q842,374 822,372 Q810,362 818,352 Z"/>' +
-    '<path class="route" d="M708,318 C600,180 520,120 452,96"/>' +
-    '<path class="route" d="M452,96 C340,80 250,100 175,138"/>' +
-    '<path class="route" d="M175,138 C300,300 550,380 708,318"/>' +
-    '<text x="165" y="105" fill="#6e5f42" font-size="13" letter-spacing="3">UNITED STATES</text>' +
-    '<text x="405" y="45" fill="#6e5f42" font-size="13" letter-spacing="3">UNITED KINGDOM</text>' +
-    '<text x="672" y="410" fill="#6e5f42" font-size="13" letter-spacing="3">AUSTRALIA</text>';
+    // North America — bigger, with a Florida hook and west-coast bulge
+    '<path class="land" d="M52,120 Q70,62 150,52 Q240,36 290,66 Q340,58 356,96 Q372,140 340,176 Q346,214 310,232 Q296,268 254,252 Q216,276 176,250 Q120,258 92,216 Q48,196 56,156 Q44,134 52,120 Z"/>' +
+    // Britain + a hint of Ireland
+    '<path class="land" d="M462,44 Q476,26 492,36 Q512,30 516,56 Q534,74 518,96 Q530,120 508,132 Q516,156 494,164 Q470,176 456,156 Q438,146 446,120 Q436,102 448,84 Q442,58 462,44 Z"/>' +
+    '<path class="land" d="M408,96 Q422,84 432,96 Q436,116 424,126 Q406,128 402,112 Q400,102 408,96 Z" opacity="0.75"/>' +
+    // continental Europe, faded backdrop
+    '<path class="land" d="M540,150 Q600,126 650,150 Q710,144 740,180 Q760,220 740,252 Q706,274 670,258 Q624,270 600,238 Q552,224 540,190 Z" opacity="0.4"/>' +
+    // Australia — bigger, with a bight and Cape York
+    '<path class="land" d="M600,398 Q606,346 660,336 Q690,308 716,336 Q724,306 742,332 Q790,326 828,352 Q862,380 852,428 Q838,476 786,490 Q744,510 700,496 Q662,510 634,484 Q596,470 606,430 Q592,412 600,398 Z"/>' +
+    // Tasmania
+    '<path class="land" d="M768,512 Q788,502 800,516 Q796,534 776,534 Q762,526 768,512 Z"/>' +
+    // shipping-lane routes
+    '<path class="route" d="M712,384 C620,240 560,160 496,102"/>' +
+    '<path class="route" d="M496,102 C400,70 300,92 216,138"/>' +
+    '<path class="route" d="M216,138 C340,340 560,440 712,384"/>' +
+    '<text x="150" y="300" fill="#6e5f42" font-size="14" letter-spacing="3">UNITED STATES</text>' +
+    '<text x="300" y="60" fill="#6e5f42" font-size="14" letter-spacing="3">UNITED KINGDOM</text>' +
+    '<text x="640" y="548" fill="#6e5f42" font-size="14" letter-spacing="3">AUSTRALIA</text>' +
+    '<text x="60" y="420" fill="#4d4126" font-size="11" letter-spacing="4" opacity="0.8">P A C I F I C</text>' +
+    '<text x="330" y="330" fill="#4d4126" font-size="11" letter-spacing="4" opacity="0.8">A T L A N T I C</text>';
   for(const id of SITE_ORDER){
-    const [x,y] = MAP_NODES[id]; const site = SITES[id];
+    const [x,y,side] = MAP_NODES[id]; const site = SITES[id];
     const cost = travelCost(id);
     const g = document.createElementNS('http://www.w3.org/2000/svg','g');
     g.setAttribute('class','mapnode'+(id===selectedSite?' sel':'')+(cost>state.money?' locked':''));
+    // labels hang left where marked (or near the right edge) so nothing collides
+    const left = side==='L' || x > 780;
+    const tx = left ? x-13 : x+13, anchor = left ? ' text-anchor="end"' : '';
     g.innerHTML =
       '<circle class="pin" cx="'+x+'" cy="'+y+'" r="8"/>' +
       (id===state.location? '<circle cx="'+x+'" cy="'+y+'" r="3.4" fill="#ffd24a"/>' : '') +
-      '<text x="'+(x+13)+'" y="'+(y-6)+'">'+site.name+'</text>' +
-      '<text class="cost" x="'+(x+13)+'" y="'+(y+9)+'">'+(id===state.location?'HERE':cost?fmt$(cost):'FREE')+'</text>';
+      '<text x="'+tx+'" y="'+(y-6)+'"'+anchor+'>'+site.name+'</text>' +
+      '<text class="cost" x="'+tx+'" y="'+(y+9)+'"'+anchor+'>'+(id===state.location?'HERE':cost?fmt$(cost):'FREE')+'</text>';
     g.addEventListener('click', ()=>selectSite(id));
     svg.appendChild(g);
   }
@@ -412,6 +427,16 @@ function renderCollection(){
 /* ---------- missions ---------- */
 function allMissions(){ return MISSIONS.concat(state.genMissions||[]); }
 
+/** Where a mission's find is marked, in world coords: a named terrain zone,
+ *  a fixed spot from the mission data, or a generated notice's random spot. */
+function missionSpot(m, site){
+  if(m.zone && site['_'+m.zone]) return site['_'+m.zone];
+  if(m.at) return m.at;
+  if(m.zoneAt) return m.zoneAt;
+  return null;
+}
+const missionLocated = m => !!(m.zone || m.at || m.zoneAt);
+
 /* generated notice-board posts — two fresh ones every trip home */
 const NOTICE_NAMES = {
   AU:['Bazza','Noelene','Merv','Kylie H.','Trev from the caravan park','Dot','Warren, RSL sub-branch'],
@@ -435,6 +460,14 @@ const NOTICE_TEMPLATES = [
     post:(i,s,n)=>'"My brother-in-law swears there’s not a single '+i.name.toLowerCase()+' left at '+s.name+'. Prove him wrong. — '+n+'"',
     accept:(i,s,n)=>n+' grins. "He’s insufferable. Make it hurt."',
     done:(i,s,n)=>n+' photographs it from six angles and forwards every one of them to the brother-in-law. Money well spent, they say.' },
+  { located:true, map:true, title:(i)=>'The Torn Map',
+    post:(i,s,n)=>'"Found a hand-drawn map folded into a second-hand book — an X, and the words \''+s.name+'\'. I can’t travel any more. Whatever it is, we split it. — '+n+'"',
+    accept:(i,s,n)=>'You copy the map carefully over tea with '+n+'. The X is emphatic. Press M in the field to view it.',
+    done:(i,s,n)=>n+' stares at what the X was hiding, then at you. "Well. The book was 50p."' },
+  { located:true, title:(i)=>'Right Where I Dropped It',
+    post:(i,s,n)=>'"I can walk you to within twenty paces of where I lost my '+i.name.toLowerCase()+' at '+s.name+'. Twenty paces is the problem. — '+n+'"',
+    accept:(i,s,n)=>n+' plants an imaginary flag in the air. "There. Near enough there." A red flag marks the spot in the field.',
+    done:(i,s,n)=>'"THERE it is." '+n+' does a small, dignified dance, then pays up.' },
 ];
 function generateNotice(siteId){
   const site = SITES[siteId];
@@ -446,8 +479,17 @@ function generateNotice(siteId){
   const t = NOTICE_TEMPLATES[Math.floor(Math.random()*NOTICE_TEMPLATES.length)];
   const reward = Math.max(60, Math.round((item.val[0]+item.val[1])/2 * (2+Math.random()*1.5) / 10)*10);
   state.noticeSeq = (state.noticeSeq||0)+1;
-  return { id:'gen'+state.noticeSeq, site:siteId, targetItem:key, zone:null, reward, rep:1,
-    title:t.title(item,site,name), post:t.post(item,site,name), accept:t.accept(item,site,name), done:t.done(item,site,name) };
+  // At least half of all notices point at a spot: located templates always do,
+  // and the rest roll for it (with a map to view for a share of those).
+  const located = t.located || Math.random() < 0.45;
+  const zoneAt = located
+    ? { x: Math.round((Math.random()-0.5)*150), z: Math.round((Math.random()-0.5)*150) }
+    : null;
+  const hasMap = located && (t.map || Math.random() < 0.4);
+  return { id:'gen'+state.noticeSeq, site:siteId, targetItem:key, zone:null, zoneAt, map:hasMap, reward, rep:1,
+    title:t.title(item,site,name), post:t.post(item,site,name),
+    accept:t.accept(item,site,name) + (hasMap && !t.map ? ' They sketch you a map — press M in the field to view it.' : ''),
+    done:t.done(item,site,name) };
 }
 function freshenNoticeBoard(){
   state.genMissions = state.genMissions||[];
@@ -473,8 +515,9 @@ function renderMissions(){
     const st = state.missions[m.id] || 'open';
     const note = document.createElement('div');
     note.className = 'note '+(st==='accepted'?'accepted':st==='done'?'completed':'');
+    const locChip = m.map ? ' · 🗺 map included' : missionLocated(m) ? ' · 📍 spot marked' : '';
     note.innerHTML = '<h4>'+m.title+'</h4><div class="n-post">'+m.post+'</div>' +
-      '<div class="n-meta"><span>'+SITES[m.site].flag+' '+SITES[m.site].name+' · reward '+fmt$(m.reward)+'</span></div>';
+      '<div class="n-meta"><span>'+SITES[m.site].flag+' '+SITES[m.site].name+' · reward '+fmt$(m.reward)+locChip+'</span></div>';
     if(st==='open'){
       const b = document.createElement('button'); b.className='btn'; b.textContent='TAKE IT ON';
       b.onclick = ()=>{ state.missions[m.id]='accepted'; save(); renderMissions();
@@ -515,6 +558,7 @@ let sessionFinds = [], sessionSpend = 0, sessionEarn = 0;
 let eventTimer = 18;
 let hintTimer = 0;
 let permissionActive = true; // uk farm gate
+let mapMissions = [];   // accepted missions here that came with a hand-drawn map
 
 function trip(){ return { site: SITES[state.location] }; }
 
@@ -559,10 +603,12 @@ function enterField(){
   const lit = digDensity>=5? 5 : digDensity>=3? 4 : digDensity>=1.45? 3 : digDensity>=1.3? 2 : 1;
   const dd = $('#densityDots'); dd.innerHTML='';
   for(let i=0;i<5;i++){ const d=document.createElement('i'); if(i>=lit) d.className='off'; dd.appendChild(d); }
-  // mission flag
-  const mission = allMissions().find(m=>m.site===site.id && state.missions[m.id]==='accepted');
-  if(mission && mission.zone && site['_'+mission.zone]){
-    const p = site['_'+mission.zone];
+  // mission flags — one per located, accepted mission on this site
+  const fieldMissions = allMissions().filter(m=>m.site===site.id && state.missions[m.id]==='accepted');
+  const mission = fieldMissions[0];
+  for(const m of fieldMissions){
+    const p = missionSpot(m, site);
+    if(!p) continue;
     const flag = new THREE.Group();
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,2.4,6), new THREE.MeshLambertMaterial({color:0xdddddd}));
     pole.position.y=1.2; flag.add(pole);
@@ -571,6 +617,11 @@ function enterField(){
     flag.position.set(p.x, world.heightAt(p.x,p.z), p.z);
     scene.add(flag);
   }
+  // hand-drawn map, if any accepted mission here comes with one
+  mapMissions = fieldMissions.filter(m=>m.map && missionSpot(m, site));
+  $('#hudMapBtn').hidden = !mapMissions.length || IS_TOUCH;
+  $('#tbMap').hidden = !mapMissions.length;
+  $('#mapOverlay').hidden = true;
   // HUD
   $('#hudSite').textContent = site.name;
   $('#hudTime').textContent = site.region + ' · ' + ({sunrise:'dawn',afternoon:'afternoon',cloudy:'overcast',harshnoon:'midday',goldenhour:'golden hour',dusk:'dusk',morning:'morning'})[site.time];
@@ -591,7 +642,11 @@ function enterField(){
   sessionFinds=[]; sessionEarn=0; sessionSpend=0; flagTime=0; eventTimer = 26+Math.random()*20;
   npc=null; bird=null; snakeObj=null;
   const missionEl = $('#hudMission');
-  if(mission){ missionEl.hidden=false; missionEl.innerHTML = '<b>'+mission.title+'</b><br>'+(mission.zone?'Search near the red flag.':'Search anywhere on this site.'); }
+  if(mission){
+    const extra = fieldMissions.length>1 ? ' (+'+(fieldMissions.length-1)+' more)' : '';
+    const where = mission.map ? 'Press M to view the map.' : missionLocated(mission) ? 'Search near the red flag.' : 'Search anywhere on this site.';
+    missionEl.hidden=false; missionEl.innerHTML = '<b>'+mission.title+extra+'</b><br>'+where;
+  }
   else missionEl.hidden = true;
   show('field');
   $('#hud').hidden = false;
@@ -636,9 +691,9 @@ function seedTargets(site){
   });
   // guaranteed mission targets — one per accepted mission on this site
   for(const mission of allMissions().filter(m=>m.site===site.id && state.missions[m.id]==='accepted')){
-    const zone = mission.zone && site['_'+mission.zone];
-    const x = zone? zone.x + (rng()-0.5)*14 : (rng()-0.5)*80;
-    const z = zone? zone.z + (rng()-0.5)*14 : (rng()-0.5)*80;
+    const spot = missionSpot(mission, site);
+    const x = spot? spot.x + (rng()-0.5)*14 : (rng()-0.5)*80;
+    const z = spot? spot.z + (rng()-0.5)*14 : (rng()-0.5)*80;
     const item = ITEMS[mission.targetItem];
     targets.push({ x, z, depth: item.depth[0]+rng()*6, key:mission.targetItem, dug:false, mission:mission.id });
   }
@@ -665,6 +720,97 @@ function pauseTitle(t, d){
   $('#fieldPause').hidden = false;
 }
 
+/* ---------- hand-drawn mission map ---------- */
+function playerSpawn(site){
+  if(site.terrain==='beach') return { x:55, z:26 };
+  if(site.id==='uk_farm' && !state.farmPermission) return { x:-66.5, z:46 };
+  return { x:0, z:60 };
+}
+function drawTreasureMap(){
+  const site = SITES[state.location];
+  const cv = $('#mapCanvas'), g = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const rng = WORLD.mulberry32((site.id.length*2654435761 ^ site.name.length*7919) >>> 0);
+  // parchment with mottling
+  g.setTransform(1,0,0,1,0,0);
+  g.fillStyle = '#d9c69a'; g.fillRect(0,0,W,H);
+  for(let i=0;i<160;i++){
+    g.fillStyle = 'rgba(' + (rng()<0.5? '120,90,40':'88,60,26') + ',' + (0.02+rng()*0.05).toFixed(3) + ')';
+    const r = 8+rng()*55; g.beginPath(); g.arc(rng()*W, rng()*H, r, 0, 7); g.fill();
+  }
+  // scorched edge + ruled borders
+  g.strokeStyle = 'rgba(66,42,14,0.5)'; g.lineWidth = 12; g.strokeRect(6,6,W-12,H-12);
+  g.strokeStyle = '#6b4a1d'; g.lineWidth = 2; g.strokeRect(28,28,W-56,H-56);
+  g.lineWidth = 1; g.strokeRect(34,34,W-68,H-68);
+  // title
+  g.fillStyle = '#4a3312'; g.textAlign = 'center';
+  g.font = 'bold 30px Georgia, serif';
+  g.fillText(site.name.toUpperCase(), W/2, 68);
+  g.font = 'italic 15px Georgia, serif';
+  g.fillText('~ as remembered, not to scale ~', W/2, 90);
+  // world -> parchment transform
+  const pad = 100, S = (W - pad*2) / WORLD.SIZE;
+  const mx = wx => pad + (wx + WORLD.SIZE/2) * S;
+  const my = wz => pad + (wz + WORLD.SIZE/2) * S;
+  // scattered landmark trees / scrub
+  g.strokeStyle = '#5a4016'; g.fillStyle = '#5a4016'; g.lineWidth = 1.6;
+  for(let i=0;i<13;i++){
+    const x = mx((rng()-0.5)*WORLD.SIZE*0.85), y = my((rng()-0.5)*WORLD.SIZE*0.85);
+    g.beginPath(); g.arc(x, y-5, 5+rng()*3, 0.9*Math.PI, 2.1*Math.PI); g.stroke();
+    g.beginPath(); g.moveTo(x, y-2); g.lineTo(x, y+5); g.stroke();
+  }
+  // restricted ground, hatched
+  const pz = site._pzone;
+  if(pz){
+    const x = mx(pz.x), y = my(pz.z), r = pz.r*S;
+    g.save(); g.beginPath(); g.arc(x,y,r,0,7); g.clip();
+    g.strokeStyle = 'rgba(122,42,26,0.75)'; g.lineWidth = 1.4;
+    for(let i=-8;i<9;i++){ g.beginPath(); g.moveTo(x-r+i*8, y-r); g.lineTo(x-r+i*8+r*2, y+r); g.stroke(); }
+    g.restore();
+    g.strokeStyle = '#7a2a1a'; g.lineWidth = 2; g.beginPath(); g.arc(x,y,r,0,7); g.stroke();
+    g.fillStyle = '#7a2a1a'; g.font = 'bold 13px Georgia, serif';
+    g.fillText('KEEP OUT', x, y - r - 6);
+  }
+  // camp (where you come in)
+  const sp = playerSpawn(site);
+  const cx = mx(sp.x), cy = my(sp.z);
+  g.fillStyle = '#4a3312'; g.font = '20px Georgia, serif';
+  g.fillText('▲', cx, cy+7);
+  g.font = 'italic 13px Georgia, serif';
+  g.fillText('camp', cx, cy+22);
+  // the X (or Xs), with a wandering dashed trail from camp
+  g.font = 'bold 15px Georgia, serif';
+  for(const m of mapMissions){
+    const spot = missionSpot(m, site);
+    if(!spot) continue;
+    const x = mx(spot.x), y = my(spot.z);
+    g.strokeStyle = 'rgba(74,51,18,0.8)'; g.lineWidth = 2; g.setLineDash([7,8]);
+    g.beginPath(); g.moveTo(cx, cy);
+    g.quadraticCurveTo((cx+x)/2 + (rng()-0.5)*90, (cy+y)/2 + (rng()-0.5)*90, x, y);
+    g.stroke(); g.setLineDash([]);
+    g.strokeStyle = '#8a1f12'; g.lineWidth = 6; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x-13,y-13); g.lineTo(x+13,y+13); g.moveTo(x+13,y-13); g.lineTo(x-13,y+13); g.stroke();
+    g.fillStyle = '#8a1f12';
+    g.fillText(m.title, x, y+30);
+  }
+  // your position, faint (you, reading the map)
+  g.fillStyle = 'rgba(30,42,88,0.85)'; g.beginPath(); g.arc(mx(player.x), my(player.z), 5, 0, 7); g.fill();
+  g.font = 'italic 12px Georgia, serif'; g.fillText('you', mx(player.x), my(player.z)+18);
+  // compass rose
+  const rx = W-86, ry = H-86;
+  g.strokeStyle = '#4a3312'; g.lineWidth = 2;
+  g.beginPath(); g.arc(rx,ry,26,0,7); g.stroke();
+  g.beginPath(); g.moveTo(rx,ry+22); g.lineTo(rx,ry-22); g.moveTo(rx-22,ry); g.lineTo(rx+22,ry); g.stroke();
+  g.fillStyle = '#4a3312'; g.font = 'bold 14px Georgia, serif'; g.fillText('N', rx, ry-30);
+}
+function toggleMissionMap(force){
+  const ov = $('#mapOverlay');
+  const show = force!==undefined ? force : ov.hidden;
+  if(show && !mapMissions.length) return;
+  if(show){ drawTreasureMap(); ov.hidden = false; document.exitPointerLock?.(); AUDIO.blip(660,0.07,'sine',0.14); }
+  else { ov.hidden = true; if(running && !IS_TOUCH && $('#fieldPause').hidden) glCanvas.requestPointerLock?.(); }
+}
+
 /* ---------- pointer lock ---------- */
 const glCanvas = $('#gl');
 $('#btnResume').addEventListener('click', ()=>{
@@ -675,10 +821,12 @@ $('#btnResume').addEventListener('click', ()=>{
 });
 document.addEventListener('pointerlockchange', ()=>{
   locked = document.pointerLockElement === glCanvas;
-  if(!locked && running && $('#fieldPause').hidden && $('#modal').hidden && $('#digModal').hidden && $('#findModal').hidden && $('#resultsModal').hidden){
+  if(!locked && running && $('#fieldPause').hidden && $('#modal').hidden && $('#digModal').hidden && $('#findModal').hidden && $('#resultsModal').hidden && $('#mapOverlay').hidden){
     pauseTitle('PAUSED','The kettle’s on. Back out there when you’re ready.');
   }
 });
+$('#hudMapBtn').addEventListener('click', ()=>toggleMissionMap(true));
+$('#mapOverlay').addEventListener('click', ()=>toggleMissionMap(false));
 document.addEventListener('mousemove', e=>{
   if(!running || !$('#fieldPause').hidden) return;
   if(document.pointerLockElement===glCanvas || e.buttons===1){
@@ -706,6 +854,8 @@ document.addEventListener('keydown', e=>{
   }
   if(e.code==='ShiftLeft'||e.code==='ShiftRight') pinpoint = true;
   if(modalOpen) return;
+  if(e.code==='KeyM'){ toggleMissionMap(); return; }
+  if(!$('#mapOverlay').hidden) return; // map open: fold it away first
   if(e.code==='KeyE') tryInteract();
   if(e.code==='KeyR') eat();
   if(e.code==='KeyH'){ document.exitPointerLock?.(); endSession(); }
@@ -1344,12 +1494,15 @@ async function snakeEvent(){
   scene.add(snakeObj);
   document.exitPointerLock?.();
   AUDIO.bad();
-  await modal({ icon:'🐍', title:'Tiger snake!', body:'<div class="quote">'+DIALOGUE.snake+'</div><p>That target can wait. Forever, maybe.</p>',
+  const us = SITES[state.location].country === 'US';
+  await modal({ icon:'🐍', title: us? 'Rattlesnake!' : 'Tiger snake!',
+    body:'<div class="quote">'+(us? DIALOGUE.snakeUS : DIALOGUE.snake)+'</div><p>That target can wait. Forever, maybe.</p>',
     options:[{label:'Back away slowly', gold:true}]});
   player.x -= Math.sin(yaw)*-6; player.z -= Math.cos(yaw)*-6;
   player.stamina = Math.max(0, player.stamina-5);
   setTimeout(()=>{ if(snakeObj){ scene.remove(snakeObj); snakeObj=null;
-    if(running) toast('The tiger snake pours off into the ironbark. That signal is still in the ground where you left it.'); } }, 9000);
+    if(running) toast(us? 'The rattler winds off under the sage. That signal is still in the ground where you left it.'
+                       : 'The tiger snake pours off into the ironbark. That signal is still in the ground where you left it.'); } }, 9000);
 }
 function updateSnake(t){
   if(!snakeObj) return;
@@ -1367,7 +1520,7 @@ function animate(){
   const dt = Math.min(0.05, clock.getDelta());
   const t = clock.elapsedTime;
   const site = SITES[state.location];
-  const paused = !$('#fieldPause').hidden || !$('#modal').hidden || !$('#digModal').hidden || !$('#findModal').hidden || !$('#resultsModal').hidden;
+  const paused = !$('#fieldPause').hidden || !$('#modal').hidden || !$('#digModal').hidden || !$('#findModal').hidden || !$('#resultsModal').hidden || !$('#mapOverlay').hidden;
   if(running && !paused){
     // movement
     let mx=0, mz=0;
@@ -1488,6 +1641,8 @@ function endSession(){
   running = false;
   AUDIO.stopTone(); AUDIO.ambient(0);
   $('#fieldPause').hidden = true;
+  $('#mapOverlay').hidden = true;
+  $('#hudMapBtn').hidden = true; $('#tbMap').hidden = true;
   const rows = sessionFinds.map(f=>'<tr><td>'+f.name+'</td><td>'+(f.kind==='binned'?'binned':f.value?fmt$(f.value):'—')+'</td></tr>').join('');
   const keeps = sessionFinds.filter(f=>f.value>0).reduce((a,f)=>a+f.value,0);
   $('#resultsBody').innerHTML =
@@ -1572,6 +1727,7 @@ if(IS_TOUCH){
   for(const ev of ['pointerup','pointercancel','pointerleave'])
     $('#tbPP').addEventListener(ev, ()=>{ pinpoint = false; });
   $('#tbEat').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) eat(); });
+  $('#tbMap').addEventListener('pointerdown', e=>{ e.preventDefault(); if(guardOk()) toggleMissionMap(); });
   $('#tbPause').addEventListener('pointerdown', e=>{ e.preventDefault();
     if(running && $('#fieldPause').hidden) pauseTitle('PAUSED','Have a breather. Pack up from here if you\u2019re done.'); });
   // swap keyboard copy for touch copy
@@ -1599,15 +1755,34 @@ $('#btnGo').addEventListener('click', ()=>{
   save();
   enterField();
 });
-$('#btnNew').addEventListener('click', ()=>{
-  state = DEFAULT_STATE(); save();
+const STARTS = {
+  AU: { site:'au_beach',
+    blurb:'Straight onto the sand: sunrise, low tide, and a summer of lost property under your coil.' },
+  UK: { site:'uk_green',
+    blurb:'A fresh morning on the village green: five centuries of fairs, markets and dropped change under the dew.' },
+  US: { site:'us_park',
+    blurb:'Golden hour on the old common: wheaties on top, colonial coppers in the subsoil, and an elm-lined evening ahead.' },
+};
+$('#btnNew').addEventListener('click', async ()=>{
   AUDIO.resume();
-  // straight onto the sand — base camp can wait
+  const c = await modal({ icon:'\u{1F9ED}', title:'Where does your story start?',
+    body:'<p>Pick your home country — you start on local ground with no airfare owed. ' +
+      'The other countries are a (pricey) flight away once you’ve dug up the funds.</p>',
+    options:[
+      { key:'AU', label:'\u{1F1E6}\u{1F1FA} Australia — Kingfisher Beach at sunrise', gold:true },
+      { key:'UK', label:'\u{1F1EC}\u{1F1E7} England — Nettlebury Green on a fresh morning' },
+      { key:'US', label:'\u{1F1FA}\u{1F1F8} United States — Liberty Park at golden hour' },
+    ]});
+  const start = STARTS[c] || STARTS.AU;
+  state = DEFAULT_STATE();
+  state.location = start.site;
+  state.country = SITES[start.site].country;
+  save();
   enterField();
-  pauseTitle('DAY 1 — KINGFISHER BEACH',
-    'Straight onto the sand: sunrise, low tide, and a summer of lost property under your coil. ' +
-    (IS_TOUCH ? 'Tap \u275a\u275a then \u201cPack up & head home\u201d' : 'Press H') +
-    ' whenever you like to head home \u2014 the world map, shop, missions and detector upgrades all live there.');
+  pauseTitle('DAY 1 — ' + SITES[start.site].name.toUpperCase(),
+    start.blurb + ' ' +
+    (IS_TOUCH ? 'Tap ❚❚ then “Pack up & head home”' : 'Press H') +
+    ' whenever you like to head home — the world map, shop, missions and detector upgrades all live there.');
 });
 $('#btnContinue').addEventListener('click', ()=>{ AUDIO.resume(); renderCamp(); show('camp'); });
 

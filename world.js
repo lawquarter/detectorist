@@ -787,14 +787,17 @@ function dressSite(site, scene, heightAt, rng){
     site._bigfig = {x:-32,z:-20};
     const pg = makeBuilding('playground'); pg.position.set(34, heightAt(34,28), 28); props.add(pg);
     for(let i=0;i<4;i++){ const p = makeBuilding('picnic'); const x=-15+i*12, z=42; p.position.set(x,heightAt(x,z),z); p.rotation.y=rng(); props.add(p); }
-    const mem = makeBuilding('memorial'); mem.position.set(pz.x, heightAt(pz.x,pz.z), pz.z); props.add(mem);
-    // memorial fence ring + signs
-    const ring = new THREE.Group();
-    for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; const post=makeFencePost();
-      post.position.set(pz.x+Math.cos(a)*pz.r, heightAt(pz.x+Math.cos(a)*pz.r, pz.z+Math.sin(a)*pz.r)+0.55, pz.z+Math.sin(a)*pz.r); ring.add(post); }
-    props.add(ring);
-    const s1 = makeSign(['WAR MEMORIAL','NO METAL','DETECTING']); s1.position.set(pz.x, heightAt(pz.x,pz.z+pz.r+1), pz.z+pz.r+1); props.add(s1);
-    const s2 = makeSign(['FEDERATION PARK','EST. 1901'],{border:'#2f5a3a',fg:'#2f5a3a'}); s2.position.set(6,heightAt(6,52),52); s2.rotation.y=Math.PI; props.add(s2);
+    if(pz){
+      const mem = makeBuilding('memorial'); mem.position.set(pz.x, heightAt(pz.x,pz.z), pz.z); props.add(mem);
+      // memorial fence ring + signs
+      const ring = new THREE.Group();
+      for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; const post=makeFencePost();
+        post.position.set(pz.x+Math.cos(a)*pz.r, heightAt(pz.x+Math.cos(a)*pz.r, pz.z+Math.sin(a)*pz.r)+0.55, pz.z+Math.sin(a)*pz.r); ring.add(post); }
+      props.add(ring);
+      const s1 = makeSign(['WAR MEMORIAL','NO METAL','DETECTING']); s1.position.set(pz.x, heightAt(pz.x,pz.z+pz.r+1), pz.z+pz.r+1); props.add(s1);
+    }
+    const s2 = makeSign(site.id==='au_park'? ['FEDERATION PARK','EST. 1901'] : [site.name.toUpperCase(),'PUBLIC RESERVE'],
+      {border:'#2f5a3a',fg:'#2f5a3a'}); s2.position.set(6,heightAt(6,52),52); s2.rotation.y=Math.PI; props.add(s2);
     scatter(props, rng, 14, r=>makeRock(r,0x8a8474), heightAt, {filter:filterOut(pz)});
   }
   if(t==='beach'){
@@ -803,8 +806,10 @@ function dressSite(site, scene, heightAt, rng){
     const bw = makeBuilding('boardwalk'); bw.position.set(-40, heightAt(-40,60), 60); props.add(bw);
     const lg = makeBuilding('lifeguard'); lg.position.set(30, heightAt(30,20), 20); props.add(lg);
     for(let i=0;i<6;i++){ const p = makeTree('palm',rng); const x=(rng()-0.5)*160, z=52+rng()*30; p.position.set(x,heightAt(x,z),z); props.add(p); }
-    const s1 = makeSign(['DUNE CARE AREA','KEEP OUT','$220 PENALTY']); s1.position.set(pz.x, heightAt(pz.x, pz.z-pz.r-1)+0, pz.z-pz.r-1); props.add(s1);
-    site._dunes = { x:pz.x-24, z:34 };
+    if(pz){
+      const s1 = makeSign(['DUNE CARE AREA','KEEP OUT','$220 PENALTY']); s1.position.set(pz.x, heightAt(pz.x, pz.z-pz.r-1)+0, pz.z-pz.r-1); props.add(s1);
+      site._dunes = { x:pz.x-24, z:34 };
+    } else site._dunes = { x:-24, z:34 };
     // towels & umbrellas on dry sand
     for(let i=0;i<7;i++){
       const x=(rng()-0.5)*120, z=12+rng()*16;
@@ -819,13 +824,27 @@ function dressSite(site, scene, heightAt, rng){
   if(t==='goldfields'){
     scatter(props, rng, 22, r=>makeTree('ironbark',r), heightAt, {filter:filterOut(pz)});
     scatter(props, rng, 30, r=>makeRock(r,0x8a5a3a), heightAt);
-    const hf = makeBuilding('headframe'); hf.position.set(pz.x, heightAt(pz.x,pz.z), pz.z); props.add(hf);
-    for(let i=0;i<3;i++){
-      const mound = new THREE.Mesh(new THREE.ConeGeometry(2.6+rng()*2, 1.4+rng(), 8), lam(0xa06038));
-      const x=pz.x+(rng()-0.5)*24, z=pz.z+(rng()-0.5)*24;
-      mound.position.set(x, heightAt(x,z)+0.2, z); props.add(mound);
+    if(pz){
+      const hf = makeBuilding('headframe'); hf.position.set(pz.x, heightAt(pz.x,pz.z), pz.z); props.add(hf);
+      for(let i=0;i<3;i++){
+        const mound = new THREE.Mesh(new THREE.ConeGeometry(2.6+rng()*2, 1.4+rng(), 8), lam(0xa06038));
+        const x=pz.x+(rng()-0.5)*24, z=pz.z+(rng()-0.5)*24;
+        mound.position.set(x, heightAt(x,z)+0.2, z); props.add(mound);
+      }
+      const s1 = makeSign(site.prohibited && site.prohibited.label.toLowerCase().includes('cemetery')
+        ? ['PIONEER CEMETERY','HALLOWED GROUND','KEEP OUT'] : ['DANGER','OPEN SHAFTS','KEEP OUT']);
+      s1.position.set(pz.x+pz.r*0.8, heightAt(pz.x+pz.r*0.8,pz.z), pz.z); props.add(s1);
     }
-    const s1 = makeSign(['DANGER','OPEN SHAFTS','KEEP OUT']); s1.position.set(pz.x+pz.r*0.8, heightAt(pz.x+pz.r*0.8,pz.z), pz.z); props.add(s1);
+    if(site.id==='au_ghost' || site.id==='us_ghost'){
+      // what's left of the town: three stone chimneys along the old main street
+      for(let i=0;i<3;i++){
+        const ch = new THREE.Mesh(new THREE.BoxGeometry(1.4,4.2+rng()*1.5,1.4), lam(0x8f8272));
+        const x=-20+i*16, z=-6+(rng()-0.5)*8;
+        ch.position.set(x, heightAt(x,z)+2.0, z); ch.rotation.y=rng()*0.3; props.add(ch);
+        const hearth = new THREE.Mesh(new THREE.BoxGeometry(2.6,1.1,2.2), lam(0x7d7264));
+        hearth.position.set(x, heightAt(x,z)+0.4, z+0.4); props.add(hearth);
+      }
+    }
     const roo = makeKangaroo(); roo.position.set(48, heightAt(48,-42), -42); roo.rotation.y=-0.7; props.add(roo);
   }
   if(t==='farm'){
@@ -1056,7 +1075,8 @@ function buildSite(site, scene){
   // prohibited zone geometry per site
   const zones = {
     au_park:{x:-40,z:30,r:14}, au_beach:{x:38,z:48,r:16}, au_gold:{x:44,z:20,r:18}, au_show:{x:30,z:-26,r:15},
-    uk_green:{x:-30,z:-30,r:20}, us_park:{x:30,z:-20,r:15}, us_battle:{x:-36,z:-20,r:13} };
+    uk_green:{x:-30,z:-30,r:20}, us_park:{x:30,z:-20,r:15}, us_battle:{x:-36,z:-20,r:13},
+    au_ghost:{x:-48,z:42,r:16}, us_ghost:{x:46,z:44,r:16} };
   site._pzone = site.prohibited ? zones[site.id] : null;
   const preset = terrainPreset(site, rng);
   const { mesh, heightAt } = makeTerrain(preset, rng);

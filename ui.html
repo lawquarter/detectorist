@@ -42,7 +42,7 @@
   </nav>
   <main class="camp-body">
     <section id="tab-map" class="tabpane active">
-      <div class="map-wrap"><svg id="worldmap" viewBox="0 0 900 430" aria-label="World map"></svg></div>
+      <div class="map-wrap"><svg id="worldmap" viewBox="0 0 960 560" aria-label="World map"></svg></div>
       <div id="siteInfo" class="site-info"></div>
     </section>
     <section id="tab-shop" class="tabpane">
@@ -130,14 +130,22 @@
       <div id="stickBase"><div id="stickKnob"></div></div>
       <div class="tbtns">
         <button id="tbEat">EAT</button>
+        <button id="tbMap" hidden>MAP</button>
         <button id="tbPP">PIN·PT</button>
         <button id="tbDig">DIG</button>
       </div>
       <button id="tbPause">❚❚</button>
     </div>
+    <button id="hudMapBtn" class="hud-map-btn" hidden>🗺 MAP <span class="dim">M</span></button>
     <div id="hint" class="hint"></div>
     <div id="flash"></div>
     <div id="toasts"></div>
+
+    <!-- hand-drawn mission map overlay -->
+    <div id="mapOverlay" class="mapveil" hidden>
+      <canvas id="mapCanvas" width="680" height="680"></canvas>
+      <div class="map-close small">M or click to fold the map away</div>
+    </div>
   </div>
 
   <!-- click to start / pause overlay -->
