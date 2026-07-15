@@ -238,6 +238,15 @@ button{ font-family:var(--disp); }
 .box-keys{ margin-top:8px; color:var(--dim); font-size:13px; letter-spacing:0.08em; }
 .box-keys b{ color:var(--bone); font-family:var(--mono); background:#31250f; padding:1px 7px; border-radius:3px; border:1px solid #4d3f26; }
 #toasts{ position:absolute; left:18px; bottom:34px; display:flex; flex-direction:column; gap:6px; max-width:320px; }
+.ar-wrap{ position:absolute; left:18px; top:96px; background:rgba(9,14,12,0.6); border:1px solid #5fa4ff44;
+  border-radius:6px; padding:6px 6px 5px; backdrop-filter:blur(2px); }
+.ar-title{ font-family:var(--disp); font-size:8.5px; letter-spacing:0.22em; color:#9fd0ff; opacity:0.85;
+  text-align:center; margin-bottom:4px; }
+.ar-wrap canvas{ display:block; border-radius:3px; }
+@media (max-width:900px){ .ar-wrap canvas{ width:120px; height:120px; } .ar-wrap{ top:86px; left:12px; } }
+body.touch .ar-wrap{ top:86px; left:12px; }
+body.touch .ar-wrap canvas{ width:110px; height:110px; }
+
 .density-dots{ position:absolute; left:20px; bottom:12px; display:flex; gap:5px; opacity:0.4; }
 .density-dots i{ width:5px; height:5px; border-radius:50%; background:var(--brass); display:block; }
 .density-dots i.off{ background:#ffffff1e; }
@@ -444,6 +453,10 @@ body.touch .hud-map-btn{ display:none; }
       <div id="hudMission" class="hud-mission" hidden></div>
     </div>
     <div id="densityDots" class="density-dots"></div>
+    <div id="arWrap" class="ar-wrap" hidden>
+      <div class="ar-title">ARC VISION · GROUND COVERAGE</div>
+      <canvas id="arMap" width="176" height="176"></canvas>
+    </div>
     <div id="compass"><div id="compassStrip"></div><div class="compass-tick"></div></div>
     <div id="crosshair"></div>
     <div id="pzoneWarn" class="pzone-warn" hidden>⚠ RESTRICTED AREA — detecting prohibited</div>
@@ -595,8 +608,23 @@ const DETECTORS = {
   gpx6000: { id:'gpx6000', brand:'AurumTech', name:'DeepStrike 6000', price:7999,
     idMin:0, idMax:0, depth:60, gold:4.0, recovery:1.0, screen:'lcd-gold', goldOnly:true,
     desc:'PulseCore induction. Punches through mineralised goldfields ground to deep nuggets.' },
+  wayfarer600: { id:'wayfarer600', brand:'Meridian', name:'Wayfarer 600', price:899,
+    idMin:-19, idMax:99, depth:29, gold:0.25, recovery:1.0, screen:'lcd-mono',
+    desc:'The travelling detectorist’s mid-ranger. Lighter shaft, quicker in trash, a shade deeper than the Terrain.' },
+  aurorax: { id:'aurorax', brand:'Meridian', name:'Aurora X', price:4899,
+    idMin:0, idMax:99, depth:47, gold:0.6, recovery:1.8, screen:'lcd-2d',
+    desc:'Carbon shaft, 2D ID map and a razor-fast processor. Deeper and steadier than the Chimera in every soil.' },
+  whisper24: { id:'whisper24', brand:'AurumTech', name:'Whisper 24K', price:2199,
+    idMin:0, idMax:0, depth:30, gold:2.8, recovery:1.1, screen:'lcd-gold', goldOnly:true,
+    desc:'61 kHz gold VLF, dead quiet on hot ground. Hears flake gold the Nugget Hound walks straight over.' },
+  gpz8000: { id:'gpz8000', brand:'AurumTech', name:'DeepStrike 8000', price:12499,
+    idMin:0, idMax:0, depth:78, gold:5.2, recovery:1.0, screen:'lcd-gold', goldOnly:true,
+    desc:'Flagship PulseCore. Sees kilo-class nuggets at depths the 6000 only dreams about. The mortgage-talk machine.' },
+  vector9000: { id:'vector9000', brand:'Meridian', name:'Vector 9000', price:15999,
+    idMin:0, idMax:99, depth:55, gold:2.2, recovery:2.0, screen:'lcd-2d',
+    desc:'PulseCore–TriWave hybrid. Full ID screen, serious coin depth AND genuine nugget reach. One detector to rule them all.' },
 };
-const DETECTOR_ORDER = ['vanquish340','xterrapro','equinox900','manticore','goldmonster','gpx6000'];
+const DETECTOR_ORDER = ['vanquish340','xterrapro','wayfarer600','equinox900','manticore','aurorax','goldmonster','whisper24','gpx6000','gpz8000','vector9000'];
 
 // ---------- TOOLS / GEAR (backpack slots) ----------
 const TOOLS = {
@@ -606,16 +634,28 @@ const TOOLS = {
     desc:'Serrated steel blade. Cuts a neat plug in turf twice as fast.' },
   spade:      { id:'spade', name:'Ironbark spade', price:120, slots:2, dig:22, kind:'digger',
     desc:'Full-size spade for fields and goldfields. Heavy — takes two pack slots.' },
+  pick:       { id:'pick', name:'Ballarat pick & scraper', price:260, slots:2, dig:30, kind:'digger',
+    desc:'Goldfields steel: pick one end, scraper the other. Chews through red clay and caprock.' },
   scoop:      { id:'scoop', name:'Stainless sand scoop', price:149, slots:2, dig:26, kind:'digger', beachOnly:true,
     desc:'On sand, nothing beats a scoop. Useless on turf.' },
   pinpointer: { id:'pinpointer', name:'Harrier Pin-Probe AT', price:220, slots:1, kind:'pinpointer',
     desc:'"The Parsnip." Halves your recovery time and saves your stamina in the hole.' },
+  headphones: { id:'headphones', name:'Harrier CoilPhones Pro', price:340, slots:1, kind:'boost',
+    desc:'Sealed wireless cans. Faint deep whispers stand right out — +15% detection reach while packed.' },
   snacks:     { id:'snacks', name:'Snack pack ×3', price:12, slots:1, kind:'consumable', uses:3, restore:35,
     desc:'Muesli bars and a sandwich. Press R in the field to restore stamina.' },
   thermos:    { id:'thermos', name:'Thermos of tea', price:25, slots:1, kind:'consumable', uses:2, restore:55,
     desc:'Two strong cups. Nothing restores morale on a cold field like it.' },
-  bigpack:    { id:'bigpack', name:'Field rucksack upgrade', price:180, slots:0, kind:'upgrade',
-    desc:'Permanently adds 2 backpack slots.' },
+  esky:       { id:'esky', name:'Esky day pack ×4', price:45, slots:2, kind:'consumable', uses:4, restore:60,
+    desc:'Cold drinks and proper sandwiches. Four big feeds — press R in the field. Heavy, mind.' },
+  bigpack:    { id:'bigpack', name:'Field rucksack upgrade', price:180, slots:0, kind:'upgrade', packTo:8,
+    desc:'Permanently expands the backpack to 8 slots.' },
+  expedition: { id:'expedition', name:'Expedition pack 55L', price:680, slots:0, kind:'upgrade', packTo:12,
+    desc:'Hip belt, hydration sleeve, tool loops everywhere. Permanently expands the backpack to 12 slots.' },
+  sherpa:     { id:'sherpa', name:'Sherpa 80L expedition rig', price:2400, slots:0, kind:'upgrade', packTo:18,
+    desc:'External frame, dry bags, a pocket for everything you own. Permanently expands the backpack to 18 slots.' },
+  arvision:   { id:'arvision', name:'ARC Vision headset', price:3799, slots:0, kind:'wearable',
+    desc:'Spatial-computing headset with detector software. Paints the ground you’ve swept live on a coverage map — see exactly which strips you’ve missed. Worn, takes no pack space.' },
 };
 
 // ---------- PERMITS ----------
@@ -698,6 +738,14 @@ const ITEMS = {
     blurb:'Nearly three ounces of solid Victorian gold. You sit down in the dirt and just look at it for a while.' },
   nug400: { name:'Gold nugget 412 g', kind:'gold', cond:40, depth:[30,60], val:[50000,62000], w:0, icon:'nug', tint:'#ffd24a', bucket:'bignugget', rare:true, goldOnly:true,
     blurb:'A kilo-class heart-stopper, waterworn and butter-yellow. Finds like this make the evening news.' },
+  nug1k: { name:'Gold nugget 1.1 kg', kind:'gold', cond:44, depth:[30,60], val:[128000,152000], w:0, icon:'nug', tint:'#ffd24a', bucket:'kilonugget', rare:true, goldOnly:true,
+    blurb:'Over a kilogram of solid gold. You carry it back to the car wrapped in your jumper, checking over your shoulder the whole way.' },
+  nug2k5: { name:'Gold nugget 2.6 kg', kind:'gold', cond:47, depth:[35,60], val:[300000,360000], w:0, icon:'nug', tint:'#ffd24a', bucket:'kilonugget', rare:true, goldOnly:true,
+    blurb:'The size of a house brick’s little brother. The gold buyer will want to photograph this one — museums might too.' },
+  nug7k: { name:'Gold nugget 7.4 kg', kind:'gold', cond:50, depth:[40,60], val:[860000,1020000], w:0, icon:'nug', tint:'#ffd24a', bucket:'kilonugget', rare:true, goldOnly:true,
+    blurb:'Hand of Faith territory. Your arms ache carrying it, and your phone is already ringing — how did they find out?' },
+  nug14k: { name:'Gold nugget 14.2 kg', kind:'gold', cond:52, depth:[45,60], val:[1650000,1980000], w:0, icon:'nug', tint:'#ffd24a', bucket:'kilonugget', rare:true, goldOnly:true,
+    blurb:'Fourteen kilograms. The biggest nugget found in a century — until someone finds the Monster. You sit in the dirt and laugh.' },
   nug25k: { name:'The Golden Gully Monster — 25 kg', kind:'gold', cond:55, depth:[45,60], val:[3900000,4200000], w:0, icon:'nug', tint:'#ffd24a', bucket:'monster', rare:true, goldOnly:true,
     blurb:'Twenty-five kilograms of gold in one lump — Welcome Stranger country delivers again. Your knees give out. The detector keeps screaming.' },
   // --- UK ---
@@ -754,6 +802,7 @@ const ITEMS = {
 const BUCKET = [
   { id:'sovereign',  item:'sovereign',  label:'Dig a gold sovereign',            where:'Australian parks & goldfields' },
   { id:'bignugget',  item:'nug12',      label:'Unearth a 10 g+ gold nugget',     where:'Victorian goldfields' },
+  { id:'kilonugget', item:'nug1k',      label:'Bank a kilogram-plus nugget',     where:'Victorian goldfields' },
   { id:'monster',    item:'nug25k',     label:'Legend: dig a 25 kg monster nugget', where:'Victorian goldfields' },
   { id:'diamondring',item:'ring18ct',   label:'Rescue a diamond ring',           where:'Any beach' },
   { id:'denarius',   item:'denarius',   label:'Find a Roman silver denarius',    where:'English farmland' },
@@ -789,7 +838,9 @@ const SITES = {
     permit:'minersRight',
     desc:'Ironbark, red clay and 160-year-old shafts. Mineralised ground that laughs at coin machines — bring a gold detector.',
     finds:{ nug05:1, nug3:1, nug12:1, specimen:1, sovereign:0.35, pickhead:1, horseshoe:1, colbutton:0.6, nail:1.4, shotshell:1, ausix:0.3 },
-    guaranteed:['nug90','nug400','nug25k'],
+    guaranteed:['nug90','nug400'],
+    jackpots:[ {key:'nug1k', chance:0.07, rolls:2}, {key:'nug2k5', chance:0.035}, {key:'nug7k', chance:0.015},
+               {key:'nug14k', chance:0.006}, {key:'nug25k', chance:0.004} ],
     hazards:['snake','ranger'],
     mineralised:true,
     prohibited:{ label:'Historic mine shafts', reason:'Unsafe shafts, heritage-protected workings. Keep out.' } },
@@ -2134,7 +2185,7 @@ function travelLabel(siteId){
 }
 
 /* ---------- precious metal spot market ---------- */
-const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','nug90','nug400','nug25k','specimen'];
+const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','nug90','nug400','nug1k','nug2k5','nug7k','nug14k','nug25k','specimen'];
 const SILVER_KEYS = ['authree','ausix','aushil','auflorin','denarius','hammered','halfgroat','ukshil','mercdime','barberq','silring','silchain'];
 const SPOT_BASE = { g:165, s:1.65 }; // AUD per gram
 function metalMult(key){
@@ -2338,13 +2389,13 @@ function iconCanvas(item){
 function renderShop(){
   const sell = $('#sellList'); sell.innerHTML='';
   sell.insertAdjacentHTML('beforeend', '<div class="dim small" style="margin-bottom:6px">Spot market today: '+tickerHtml()+'</div>');
-  const sellables = state.pouch.map((f,i)=>({f,i,src:'pouch'})).concat(state.cabinet.map((f,i)=>({f,i,src:'cabinet'})));
+  const sellables = state.pouch.map((f,i)=>({f,i,src:'pouch'}));
   if(!sellables.length) sell.insertAdjacentHTML('beforeend', '<div class="dim">Nothing to sell. The fields await.</div>');
   let total = 0;
   sellables.forEach(({f,i,src})=>{
     const item = ITEMS[f.key]; const spot = metalMult(f.key); total += f.value*spot;
     const card = itemCard(
-      '<div class="c-main"><div class="c-name">'+f.name+(src==='cabinet'?' <span class="dim small">(cabinet)</span>':'')+'</div>' +
+      '<div class="c-main"><div class="c-name">'+f.name+'</div>' +
       '<div class="c-desc">'+item.kind+' · found day '+f.day+' at '+SITES[f.site].name+'</div></div>' +
       '<div class="c-price">'+fmt$(f.value*spot)+(spot>1.02?' \u25b2':spot<0.98?' \u25bc':'')+'</div>');
     card.prepend(iconCanvas(item));
@@ -2363,12 +2414,14 @@ function renderShop(){
     const all = document.createElement('button'); all.className='btn gold'; all.textContent='SELL EVERYTHING — '+fmt$(total);
     all.onclick = ()=>{ let sum=0;
       const cut = f => f.value * metalMult(f.key) * ((state.farmPermission==='split' && f.site==='uk_farm') ? 0.5 : 1);
-      state.pouch.forEach(f=>sum+=cut(f)); state.cabinet.forEach(f=>sum+=cut(f));
-      state.money += sum; state.pouch=[]; state.cabinet=[];
+      state.pouch.forEach(f=>sum+=cut(f));
+      state.money += sum; state.pouch=[];
       AUDIO.coin(); save(); renderCamp(); toast('Sold the lot for '+fmt$(sum));
     };
     sell.appendChild(all);
   }
+  if(state.cabinet.length)
+    sell.insertAdjacentHTML('beforeend','<div class="dim small">Your display cabinet stays home — to sell a kept piece, take it back in hand from the Collection tab.</div>');
   if(state.farmPermission==='split')
     sell.insertAdjacentHTML('beforeend','<div class="dim small">Farmer Giles takes 50% of anything from Wheatfield Farm — a deal’s a deal.</div>');
 
@@ -2408,7 +2461,7 @@ function renderShop(){
   const tl = $('#toolList'); tl.innerHTML='';
   Object.values(TOOLS).forEach(t0=>{
     const owned = t0.kind==='consumable' ? (state.uses[t0.id]||0) > 0 : state.tools[t0.id];
-    if(t0.id==='bigpack' && state.packSlots>6) return;
+    if(t0.kind==='upgrade' && state.packSlots >= t0.packTo) return;
     const card = itemCard(
       '<div class="c-main"><div class="c-name">'+t0.name+'</div><div class="c-desc">'+t0.desc+
       (t0.slots?' <span class="dim">('+t0.slots+' slot'+(t0.slots>1?'s':'')+')</span>':'')+'</div></div>' +
@@ -2421,7 +2474,7 @@ function renderShop(){
       b.onclick = ()=>{
         state.money -= t0.price;
         if(t0.kind==='consumable'){ state.uses[t0.id] = (state.uses[t0.id]||0) + t0.uses; if(!state.loadout.includes(t0.id)) state.loadout.push(t0.id); }
-        else if(t0.id==='bigpack'){ state.packSlots = 8; }
+        else if(t0.kind==='upgrade'){ state.packSlots = Math.max(state.packSlots, t0.packTo); }
         else state.tools[t0.id] = true;
         AUDIO.coin(); save(); renderCamp(); toast(t0.name+' purchased');
       };
@@ -2479,7 +2532,7 @@ function renderKit(){
     const inPack = state.loadout.includes(t0.id);
     const card = itemCard('<div class="c-main"><div class="c-name">'+t0.name+
       (t0.kind==='consumable'?' <span class="dim small">×'+state.uses[t0.id]+'</span>':'')+'</div>' +
-      '<div class="c-desc">'+(t0.kind==='digger'?'Digs ~'+t0.dig+' cm per effort':t0.desc)+' · '+t0.slots+' slot'+(t0.slots>1?'s':'')+'</div></div>');
+      '<div class="c-desc">'+(t0.kind==='digger'?'Digs ~'+t0.dig+' cm per effort':t0.desc)+' · '+(t0.slots? t0.slots+' slot'+(t0.slots>1?'s':'') : 'worn — no pack space')+'</div></div>');
     if(inPack) card.classList.add('equipped');
     const b = document.createElement('button'); b.className='btn';
     b.textContent = inPack? 'PACKED ✓' : 'PACK';
@@ -2506,11 +2559,20 @@ function renderCollection(){
   });
   const cab = $('#cabinet'); cab.innerHTML='';
   if(!state.cabinet.length) cab.innerHTML='<div class="dim">Empty shelves. Keep something special from the shop screen.</div>';
-  state.cabinet.forEach(f=>{
+  state.cabinet.forEach((f,idx)=>{
     const item = ITEMS[f.key];
     const card = itemCard('<div class="c-main"><div class="c-name">'+f.name+'</div>' +
-      '<div class="c-desc">Day '+f.day+' — '+SITES[f.site].name+'</div></div><div class="c-price">'+fmt$(f.value)+'</div>');
+      '<div class="c-desc">Day '+f.day+' — '+SITES[f.site].name+'</div></div><div class="c-price">'+fmt$(f.value*metalMult(f.key))+'</div>');
     card.prepend(iconCanvas(item));
+    const b = document.createElement('button'); b.className='btn'; b.textContent='TAKE IN HAND';
+    b.title = 'Move it back to your pouch to sell at the dealer';
+    b.onclick = ()=>{
+      if(state.pouch.length >= 12){ toast('Finds pouch is full — sell something first', 'bad'); return; }
+      state.pouch.push(state.cabinet.splice(idx,1)[0]);
+      save(); renderShop(); renderCollection();
+      toast(f.name+' is back in your pouch — the dealer awaits');
+    };
+    card.appendChild(b);
     cab.appendChild(card);
   });
 }
@@ -2729,6 +2791,7 @@ function enterField(){
   $('#lcd2dMap').hidden = det.screen !== 'lcd-2d';
   idmapPts = [];
   buildCompass();
+  initAr();
   updatePouchHud();
   sessionFinds=[]; sessionEarn=0; sessionSpend=0; flagTime=0; eventTimer = 26+Math.random()*20;
   npc=null; bird=null; snakeObj=null;
@@ -2779,6 +2842,16 @@ function seedTargets(site){
     const x = (rng()-0.5)*WORLD.SIZE*0.8, z = (rng()-0.5)*WORLD.SIZE*0.8;
     const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
     targets.push({ x, z, depth, key, dug:false, special:tag });
+  });
+  // monster-nugget jackpots — pure luck each session, odds shrink with size
+  (site.jackpots||[]).forEach(j=>{
+    for(let i=0; i<(j.rolls||1); i++){
+      if(Math.random() > j.chance) continue;
+      const item = ITEMS[j.key];
+      const x = (Math.random()-0.5)*WORLD.SIZE*0.8, z = (Math.random()-0.5)*WORLD.SIZE*0.8;
+      const depth = item.depth[0] + Math.random()*(item.depth[1]-item.depth[0]);
+      targets.push({ x, z, depth, key:j.key, dug:false });
+    }
   });
   // guaranteed mission targets — one per accepted mission on this site
   for(const mission of allMissions().filter(m=>m.site===site.id && state.missions[m.id]==='accepted')){
@@ -2957,10 +3030,11 @@ document.addEventListener('keyup', e=>{
 });
 
 function eat(){
-  for(const id of ['thermos','snacks']){
+  const EAT_MSG = { esky:'Cold drink and a proper sandwich from the esky.', thermos:'Hot sweet tea.', snacks:'Muesli bar demolished.' };
+  for(const id of ['esky','thermos','snacks']){
     if(state.loadout.includes(id) && (state.uses[id]||0)>0){
       state.uses[id]--; player.stamina = Math.min(100, player.stamina + TOOLS[id].restore);
-      toast(id==='snacks'? 'Muesli bar demolished. +'+TOOLS[id].restore+' stamina' : 'Hot sweet tea. +'+TOOLS[id].restore+' stamina');
+      toast(EAT_MSG[id]+' +'+TOOLS[id].restore+' stamina');
       AUDIO.blip(520,0.1,'sine',0.2); save(); return;
     }
   }
@@ -3019,6 +3093,7 @@ function updateDetection(dt){
   const cp = coilPoint();
   let best = 0, bestT = null;
   const mineralPenalty = (site.mineralised && !det.goldOnly) ? 0.6 : 1;
+  const reach = (state.tools.headphones && state.loadout.includes('headphones')) ? 1.15 : 1;
   for(const t of targets){
     if(t.dug) continue;
     const item = ITEMS[t.key];
@@ -3030,7 +3105,7 @@ function updateDetection(dt){
     const effDepth = t.depth + Math.min(80, coilGap*100)*0.9;
     if(effDepth > effMax) continue;
     const depthFrac = effDepth/effMax;
-    const r = (pinpoint? 0.5 : 0.95) * (1.15 - depthFrac*0.55);
+    const r = (pinpoint? 0.5 : 0.95) * (1.15 - depthFrac*0.55) * reach;
     const dist = Math.hypot(cp.x-t.x, cp.z-t.z);
     if(dist < r){
       const s = (1-dist/r) * (0.45 + 0.55*(1-depthFrac));
@@ -3052,6 +3127,57 @@ function updateDetection(dt){
   AUDIO.detectorTone(best, signal.cond, signal.fe, dt, pinpoint);
   updateLcd(det);
 }
+/* ---------- ARC Vision AR headset — live coverage map ---------- */
+let arOn = false, arCov = null, arTick = 0;
+function initAr(){
+  arOn = !!(state.tools.arvision && state.loadout.includes('arvision'));
+  $('#arWrap').hidden = !arOn;
+  if(!arOn){ arCov = null; return; }
+  arCov = document.createElement('canvas'); arCov.width = arCov.height = 176;
+  arTick = 0;
+  $('#arMap').getContext('2d').clearRect(0,0,176,176);
+}
+function updateAr(dt){
+  if(!arOn || !arCov) return;
+  const W = 176, S = WORLD.SIZE;
+  const px = v => (v/S + 0.5)*W;
+  // stamp the swept ground (blue trail — colour-blind safe against the orange markers)
+  const cp = coilPoint();
+  const gc = arCov.getContext('2d');
+  gc.fillStyle = 'rgba(96,164,255,0.30)';
+  gc.beginPath(); gc.arc(px(cp.x), px(cp.z), 2.2, 0, 7); gc.fill();
+  arTick -= dt;
+  if(arTick > 0) return;
+  arTick = 0.15;
+  const g = $('#arMap').getContext('2d');
+  g.fillStyle = 'rgba(9,14,12,0.92)'; g.fillRect(0,0,W,W);
+  g.strokeStyle = 'rgba(255,255,255,0.07)';
+  for(let i=1;i<4;i++){
+    g.beginPath(); g.moveTo(W*i/4,0); g.lineTo(W*i/4,W); g.stroke();
+    g.beginPath(); g.moveTo(0,W*i/4); g.lineTo(W,W*i/4); g.stroke();
+  }
+  g.drawImage(arCov, 0, 0);
+  // restricted zone ring
+  const pz = SITES[state.location]._pzone;
+  if(pz){
+    g.strokeStyle = 'rgba(255,150,60,0.6)'; g.setLineDash([3,3]);
+    g.beginPath(); g.arc(px(pz.x), px(pz.z), pz.r/S*W, 0, 7); g.stroke();
+    g.setLineDash([]);
+  }
+  // dug holes
+  g.fillStyle = '#e8b64c';
+  for(const t of targets){ if(t.dug){ g.beginPath(); g.arc(px(t.x), px(t.z), 1.8, 0, 7); g.fill(); } }
+  // you, with heading
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const X = px(player.x), Y = px(player.z);
+  g.fillStyle = '#ff9c3a';
+  g.beginPath();
+  g.moveTo(X + fx*6, Y + fz*6);
+  g.lineTo(X - fx*3 - fz*3.4, Y - fz*3 + fx*3.4);
+  g.lineTo(X - fx*3 + fz*3.4, Y - fz*3 - fx*3.4);
+  g.closePath(); g.fill();
+}
+
 let lcdHold = 0, lcdShown = '--';
 // 2D ID map: recent target samples, x = conductivity 0..1, y = ferrous score 0..1
 let idmapPts = [];
@@ -3698,6 +3824,7 @@ function animate(){
     }
     updateBird(dt);
     updateSnake(t);
+    updateAr(dt);
     // prohibited zone
     const inPz = world.inProhibited(player.x, player.z);
     $('#pzoneWarn').hidden = !inPz;
@@ -3754,6 +3881,7 @@ $('#btnHome').addEventListener('click', ()=>{
 function teardownField(){
   if(scene){ scene.traverse(o=>{ if(o.geometry) o.geometry.dispose?.(); }); }
   scene=null; world=null; npc=null; bird=null; snakeObj=null; targets=[]; coilShadow=null; coilGap=0;
+  arOn=false; arCov=null; $('#arWrap').hidden = true;
   $('#hud').hidden = true;
 }
 

@@ -43,7 +43,7 @@ function travelLabel(siteId){
 }
 
 /* ---------- precious metal spot market ---------- */
-const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','nug90','nug400','nug25k','specimen'];
+const GOLD_KEYS = ['sovereign','ring9ct','ring18ct','earring','posyring','nug05','nug3','nug12','nug90','nug400','nug1k','nug2k5','nug7k','nug14k','nug25k','specimen'];
 const SILVER_KEYS = ['authree','ausix','aushil','auflorin','denarius','hammered','halfgroat','ukshil','mercdime','barberq','silring','silchain'];
 const SPOT_BASE = { g:165, s:1.65 }; // AUD per gram
 function metalMult(key){
@@ -247,13 +247,13 @@ function iconCanvas(item){
 function renderShop(){
   const sell = $('#sellList'); sell.innerHTML='';
   sell.insertAdjacentHTML('beforeend', '<div class="dim small" style="margin-bottom:6px">Spot market today: '+tickerHtml()+'</div>');
-  const sellables = state.pouch.map((f,i)=>({f,i,src:'pouch'})).concat(state.cabinet.map((f,i)=>({f,i,src:'cabinet'})));
+  const sellables = state.pouch.map((f,i)=>({f,i,src:'pouch'}));
   if(!sellables.length) sell.insertAdjacentHTML('beforeend', '<div class="dim">Nothing to sell. The fields await.</div>');
   let total = 0;
   sellables.forEach(({f,i,src})=>{
     const item = ITEMS[f.key]; const spot = metalMult(f.key); total += f.value*spot;
     const card = itemCard(
-      '<div class="c-main"><div class="c-name">'+f.name+(src==='cabinet'?' <span class="dim small">(cabinet)</span>':'')+'</div>' +
+      '<div class="c-main"><div class="c-name">'+f.name+'</div>' +
       '<div class="c-desc">'+item.kind+' · found day '+f.day+' at '+SITES[f.site].name+'</div></div>' +
       '<div class="c-price">'+fmt$(f.value*spot)+(spot>1.02?' \u25b2':spot<0.98?' \u25bc':'')+'</div>');
     card.prepend(iconCanvas(item));
@@ -272,12 +272,14 @@ function renderShop(){
     const all = document.createElement('button'); all.className='btn gold'; all.textContent='SELL EVERYTHING — '+fmt$(total);
     all.onclick = ()=>{ let sum=0;
       const cut = f => f.value * metalMult(f.key) * ((state.farmPermission==='split' && f.site==='uk_farm') ? 0.5 : 1);
-      state.pouch.forEach(f=>sum+=cut(f)); state.cabinet.forEach(f=>sum+=cut(f));
-      state.money += sum; state.pouch=[]; state.cabinet=[];
+      state.pouch.forEach(f=>sum+=cut(f));
+      state.money += sum; state.pouch=[];
       AUDIO.coin(); save(); renderCamp(); toast('Sold the lot for '+fmt$(sum));
     };
     sell.appendChild(all);
   }
+  if(state.cabinet.length)
+    sell.insertAdjacentHTML('beforeend','<div class="dim small">Your display cabinet stays home — to sell a kept piece, take it back in hand from the Collection tab.</div>');
   if(state.farmPermission==='split')
     sell.insertAdjacentHTML('beforeend','<div class="dim small">Farmer Giles takes 50% of anything from Wheatfield Farm — a deal’s a deal.</div>');
 
@@ -317,7 +319,7 @@ function renderShop(){
   const tl = $('#toolList'); tl.innerHTML='';
   Object.values(TOOLS).forEach(t0=>{
     const owned = t0.kind==='consumable' ? (state.uses[t0.id]||0) > 0 : state.tools[t0.id];
-    if(t0.id==='bigpack' && state.packSlots>6) return;
+    if(t0.kind==='upgrade' && state.packSlots >= t0.packTo) return;
     const card = itemCard(
       '<div class="c-main"><div class="c-name">'+t0.name+'</div><div class="c-desc">'+t0.desc+
       (t0.slots?' <span class="dim">('+t0.slots+' slot'+(t0.slots>1?'s':'')+')</span>':'')+'</div></div>' +
@@ -330,7 +332,7 @@ function renderShop(){
       b.onclick = ()=>{
         state.money -= t0.price;
         if(t0.kind==='consumable'){ state.uses[t0.id] = (state.uses[t0.id]||0) + t0.uses; if(!state.loadout.includes(t0.id)) state.loadout.push(t0.id); }
-        else if(t0.id==='bigpack'){ state.packSlots = 8; }
+        else if(t0.kind==='upgrade'){ state.packSlots = Math.max(state.packSlots, t0.packTo); }
         else state.tools[t0.id] = true;
         AUDIO.coin(); save(); renderCamp(); toast(t0.name+' purchased');
       };
@@ -388,7 +390,7 @@ function renderKit(){
     const inPack = state.loadout.includes(t0.id);
     const card = itemCard('<div class="c-main"><div class="c-name">'+t0.name+
       (t0.kind==='consumable'?' <span class="dim small">×'+state.uses[t0.id]+'</span>':'')+'</div>' +
-      '<div class="c-desc">'+(t0.kind==='digger'?'Digs ~'+t0.dig+' cm per effort':t0.desc)+' · '+t0.slots+' slot'+(t0.slots>1?'s':'')+'</div></div>');
+      '<div class="c-desc">'+(t0.kind==='digger'?'Digs ~'+t0.dig+' cm per effort':t0.desc)+' · '+(t0.slots? t0.slots+' slot'+(t0.slots>1?'s':'') : 'worn — no pack space')+'</div></div>');
     if(inPack) card.classList.add('equipped');
     const b = document.createElement('button'); b.className='btn';
     b.textContent = inPack? 'PACKED ✓' : 'PACK';
@@ -415,11 +417,20 @@ function renderCollection(){
   });
   const cab = $('#cabinet'); cab.innerHTML='';
   if(!state.cabinet.length) cab.innerHTML='<div class="dim">Empty shelves. Keep something special from the shop screen.</div>';
-  state.cabinet.forEach(f=>{
+  state.cabinet.forEach((f,idx)=>{
     const item = ITEMS[f.key];
     const card = itemCard('<div class="c-main"><div class="c-name">'+f.name+'</div>' +
-      '<div class="c-desc">Day '+f.day+' — '+SITES[f.site].name+'</div></div><div class="c-price">'+fmt$(f.value)+'</div>');
+      '<div class="c-desc">Day '+f.day+' — '+SITES[f.site].name+'</div></div><div class="c-price">'+fmt$(f.value*metalMult(f.key))+'</div>');
     card.prepend(iconCanvas(item));
+    const b = document.createElement('button'); b.className='btn'; b.textContent='TAKE IN HAND';
+    b.title = 'Move it back to your pouch to sell at the dealer';
+    b.onclick = ()=>{
+      if(state.pouch.length >= 12){ toast('Finds pouch is full — sell something first', 'bad'); return; }
+      state.pouch.push(state.cabinet.splice(idx,1)[0]);
+      save(); renderShop(); renderCollection();
+      toast(f.name+' is back in your pouch — the dealer awaits');
+    };
+    card.appendChild(b);
     cab.appendChild(card);
   });
 }
@@ -638,6 +649,7 @@ function enterField(){
   $('#lcd2dMap').hidden = det.screen !== 'lcd-2d';
   idmapPts = [];
   buildCompass();
+  initAr();
   updatePouchHud();
   sessionFinds=[]; sessionEarn=0; sessionSpend=0; flagTime=0; eventTimer = 26+Math.random()*20;
   npc=null; bird=null; snakeObj=null;
@@ -688,6 +700,16 @@ function seedTargets(site){
     const x = (rng()-0.5)*WORLD.SIZE*0.8, z = (rng()-0.5)*WORLD.SIZE*0.8;
     const depth = item.depth[0] + rng()*(item.depth[1]-item.depth[0]);
     targets.push({ x, z, depth, key, dug:false, special:tag });
+  });
+  // monster-nugget jackpots — pure luck each session, odds shrink with size
+  (site.jackpots||[]).forEach(j=>{
+    for(let i=0; i<(j.rolls||1); i++){
+      if(Math.random() > j.chance) continue;
+      const item = ITEMS[j.key];
+      const x = (Math.random()-0.5)*WORLD.SIZE*0.8, z = (Math.random()-0.5)*WORLD.SIZE*0.8;
+      const depth = item.depth[0] + Math.random()*(item.depth[1]-item.depth[0]);
+      targets.push({ x, z, depth, key:j.key, dug:false });
+    }
   });
   // guaranteed mission targets — one per accepted mission on this site
   for(const mission of allMissions().filter(m=>m.site===site.id && state.missions[m.id]==='accepted')){
@@ -866,10 +888,11 @@ document.addEventListener('keyup', e=>{
 });
 
 function eat(){
-  for(const id of ['thermos','snacks']){
+  const EAT_MSG = { esky:'Cold drink and a proper sandwich from the esky.', thermos:'Hot sweet tea.', snacks:'Muesli bar demolished.' };
+  for(const id of ['esky','thermos','snacks']){
     if(state.loadout.includes(id) && (state.uses[id]||0)>0){
       state.uses[id]--; player.stamina = Math.min(100, player.stamina + TOOLS[id].restore);
-      toast(id==='snacks'? 'Muesli bar demolished. +'+TOOLS[id].restore+' stamina' : 'Hot sweet tea. +'+TOOLS[id].restore+' stamina');
+      toast(EAT_MSG[id]+' +'+TOOLS[id].restore+' stamina');
       AUDIO.blip(520,0.1,'sine',0.2); save(); return;
     }
   }
@@ -928,6 +951,7 @@ function updateDetection(dt){
   const cp = coilPoint();
   let best = 0, bestT = null;
   const mineralPenalty = (site.mineralised && !det.goldOnly) ? 0.6 : 1;
+  const reach = (state.tools.headphones && state.loadout.includes('headphones')) ? 1.15 : 1;
   for(const t of targets){
     if(t.dug) continue;
     const item = ITEMS[t.key];
@@ -939,7 +963,7 @@ function updateDetection(dt){
     const effDepth = t.depth + Math.min(80, coilGap*100)*0.9;
     if(effDepth > effMax) continue;
     const depthFrac = effDepth/effMax;
-    const r = (pinpoint? 0.5 : 0.95) * (1.15 - depthFrac*0.55);
+    const r = (pinpoint? 0.5 : 0.95) * (1.15 - depthFrac*0.55) * reach;
     const dist = Math.hypot(cp.x-t.x, cp.z-t.z);
     if(dist < r){
       const s = (1-dist/r) * (0.45 + 0.55*(1-depthFrac));
@@ -961,6 +985,57 @@ function updateDetection(dt){
   AUDIO.detectorTone(best, signal.cond, signal.fe, dt, pinpoint);
   updateLcd(det);
 }
+/* ---------- ARC Vision AR headset — live coverage map ---------- */
+let arOn = false, arCov = null, arTick = 0;
+function initAr(){
+  arOn = !!(state.tools.arvision && state.loadout.includes('arvision'));
+  $('#arWrap').hidden = !arOn;
+  if(!arOn){ arCov = null; return; }
+  arCov = document.createElement('canvas'); arCov.width = arCov.height = 176;
+  arTick = 0;
+  $('#arMap').getContext('2d').clearRect(0,0,176,176);
+}
+function updateAr(dt){
+  if(!arOn || !arCov) return;
+  const W = 176, S = WORLD.SIZE;
+  const px = v => (v/S + 0.5)*W;
+  // stamp the swept ground (blue trail — colour-blind safe against the orange markers)
+  const cp = coilPoint();
+  const gc = arCov.getContext('2d');
+  gc.fillStyle = 'rgba(96,164,255,0.30)';
+  gc.beginPath(); gc.arc(px(cp.x), px(cp.z), 2.2, 0, 7); gc.fill();
+  arTick -= dt;
+  if(arTick > 0) return;
+  arTick = 0.15;
+  const g = $('#arMap').getContext('2d');
+  g.fillStyle = 'rgba(9,14,12,0.92)'; g.fillRect(0,0,W,W);
+  g.strokeStyle = 'rgba(255,255,255,0.07)';
+  for(let i=1;i<4;i++){
+    g.beginPath(); g.moveTo(W*i/4,0); g.lineTo(W*i/4,W); g.stroke();
+    g.beginPath(); g.moveTo(0,W*i/4); g.lineTo(W,W*i/4); g.stroke();
+  }
+  g.drawImage(arCov, 0, 0);
+  // restricted zone ring
+  const pz = SITES[state.location]._pzone;
+  if(pz){
+    g.strokeStyle = 'rgba(255,150,60,0.6)'; g.setLineDash([3,3]);
+    g.beginPath(); g.arc(px(pz.x), px(pz.z), pz.r/S*W, 0, 7); g.stroke();
+    g.setLineDash([]);
+  }
+  // dug holes
+  g.fillStyle = '#e8b64c';
+  for(const t of targets){ if(t.dug){ g.beginPath(); g.arc(px(t.x), px(t.z), 1.8, 0, 7); g.fill(); } }
+  // you, with heading
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const X = px(player.x), Y = px(player.z);
+  g.fillStyle = '#ff9c3a';
+  g.beginPath();
+  g.moveTo(X + fx*6, Y + fz*6);
+  g.lineTo(X - fx*3 - fz*3.4, Y - fz*3 + fx*3.4);
+  g.lineTo(X - fx*3 + fz*3.4, Y - fz*3 - fx*3.4);
+  g.closePath(); g.fill();
+}
+
 let lcdHold = 0, lcdShown = '--';
 // 2D ID map: recent target samples, x = conductivity 0..1, y = ferrous score 0..1
 let idmapPts = [];
@@ -1607,6 +1682,7 @@ function animate(){
     }
     updateBird(dt);
     updateSnake(t);
+    updateAr(dt);
     // prohibited zone
     const inPz = world.inProhibited(player.x, player.z);
     $('#pzoneWarn').hidden = !inPz;
@@ -1663,6 +1739,7 @@ $('#btnHome').addEventListener('click', ()=>{
 function teardownField(){
   if(scene){ scene.traverse(o=>{ if(o.geometry) o.geometry.dispose?.(); }); }
   scene=null; world=null; npc=null; bird=null; snakeObj=null; targets=[]; coilShadow=null; coilGap=0;
+  arOn=false; arCov=null; $('#arWrap').hidden = true;
   $('#hud').hidden = true;
 }
 
