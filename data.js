@@ -63,14 +63,14 @@ const TOOLS = {
     desc:'Two strong cups. Nothing restores morale on a cold field like it.' },
   esky:       { id:'esky', name:'Esky day pack ×4', price:45, slots:2, kind:'consumable', uses:4, restore:60,
     desc:'Cold drinks and proper sandwiches. Four big feeds — press R in the field. Heavy, mind.' },
-  bigpack:    { id:'bigpack', name:'Field rucksack upgrade', price:180, slots:0, kind:'upgrade', packTo:8,
-    desc:'Permanently expands the backpack to 8 slots.' },
-  expedition: { id:'expedition', name:'Expedition pack 55L', price:680, slots:0, kind:'upgrade', packTo:12,
-    desc:'Hip belt, hydration sleeve, tool loops everywhere. Permanently expands the backpack to 12 slots.' },
-  sherpa:     { id:'sherpa', name:'Sherpa 80L expedition rig', price:2400, slots:0, kind:'upgrade', packTo:18,
-    desc:'External frame, dry bags, a pocket for everything you own. Permanently expands the backpack to 18 slots.' },
+  bigpack:    { id:'bigpack', name:'Field rucksack upgrade', price:180, slots:0, kind:'upgrade', packAdd:2,
+    desc:'Extra straps and pockets. Permanently adds 2 backpack slots — stacks with your other packs.' },
+  expedition: { id:'expedition', name:'Expedition pack 55L', price:680, slots:0, kind:'upgrade', packAdd:6,
+    desc:'Hip belt, hydration sleeve, tool loops everywhere. Permanently adds 6 backpack slots — stacks with your other packs.' },
+  sherpa:     { id:'sherpa', name:'Sherpa 80L expedition rig', price:2400, slots:0, kind:'upgrade', packAdd:12,
+    desc:'External frame, dry bags, a pocket for everything you own. Permanently adds 12 backpack slots — stacks with your other packs.' },
   arvision:   { id:'arvision', name:'ARC Vision headset', price:3799, slots:0, kind:'wearable',
-    desc:'Spatial-computing headset with detector software. Paints the ground you’ve swept live on a coverage map — see exactly which strips you’ve missed. Worn, takes no pack space.' },
+    desc:'Spatial-computing headset with detector software. Every strip you sweep glows blue on the ground in front of you, with a live coverage map in the corner — the missed ground has nowhere to hide. Worn, takes no pack space.' },
 };
 
 // ---------- PERMITS ----------

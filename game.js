@@ -21,7 +21,16 @@ const DEFAULT_STATE = () => ({
 let state = DEFAULT_STATE();
 const SAVE_KEY = 'detectorist-save-v1';
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){} }
-function load(){ try{ const s = localStorage.getItem(SAVE_KEY); if(s){ state = Object.assign(DEFAULT_STATE(), JSON.parse(s)); return true; } }catch(e){} return false; }
+function load(){ try{ const s = localStorage.getItem(SAVE_KEY); if(s){ state = Object.assign(DEFAULT_STATE(), JSON.parse(s)); migrateSave(); return true; } }catch(e){} return false; }
+function migrateSave(){
+  // packs used to SET slot counts (8/12/18); they now stack. Mark the legacy
+  // purchase as owned so the shop shows it, and leave the slot count as is.
+  if(!state.tools.bigpack && !state.tools.expedition && !state.tools.sherpa){
+    if(state.packSlots===8) state.tools.bigpack = true;
+    else if(state.packSlots===12) state.tools.expedition = true;
+    else if(state.packSlots===18) state.tools.sherpa = true;
+  }
+}
 const fmt$ = n => '$' + (Math.round(n*100)/100).toLocaleString('en-AU', {minimumFractionDigits: (n%1)?2:0, maximumFractionDigits:2});
 
 const FLIGHTS = { 'AU-UK':1400,'AU-US':1600,'UK-US':900,'UK-AU':1400,'US-AU':1600,'US-UK':900 };
@@ -319,7 +328,6 @@ function renderShop(){
   const tl = $('#toolList'); tl.innerHTML='';
   Object.values(TOOLS).forEach(t0=>{
     const owned = t0.kind==='consumable' ? (state.uses[t0.id]||0) > 0 : state.tools[t0.id];
-    if(t0.kind==='upgrade' && state.packSlots >= t0.packTo) return;
     const card = itemCard(
       '<div class="c-main"><div class="c-name">'+t0.name+'</div><div class="c-desc">'+t0.desc+
       (t0.slots?' <span class="dim">('+t0.slots+' slot'+(t0.slots>1?'s':'')+')</span>':'')+'</div></div>' +
@@ -332,9 +340,10 @@ function renderShop(){
       b.onclick = ()=>{
         state.money -= t0.price;
         if(t0.kind==='consumable'){ state.uses[t0.id] = (state.uses[t0.id]||0) + t0.uses; if(!state.loadout.includes(t0.id)) state.loadout.push(t0.id); }
-        else if(t0.kind==='upgrade'){ state.packSlots = Math.max(state.packSlots, t0.packTo); }
+        else if(t0.kind==='upgrade'){ state.packSlots += t0.packAdd; state.tools[t0.id] = true; }
         else state.tools[t0.id] = true;
-        AUDIO.coin(); save(); renderCamp(); toast(t0.name+' purchased');
+        AUDIO.coin(); save(); renderCamp();
+        toast(t0.kind==='upgrade' ? t0.name+' — backpack now '+state.packSlots+' slots' : t0.name+' purchased');
       };
       card.appendChild(b);
     }
@@ -986,27 +995,53 @@ function updateDetection(dt){
   updateLcd(det);
 }
 /* ---------- ARC Vision AR headset — live coverage map ---------- */
-let arOn = false, arCov = null, arTick = 0;
+const AR_COV = 512; // coverage canvas resolution; shared by minimap and ground overlay
+let arOn = false, arCov = null, arCovMini = null, arTick = 0, arMesh = null, arTex = null;
 function initAr(){
   arOn = !!(state.tools.arvision && state.loadout.includes('arvision'));
   $('#arWrap').hidden = !arOn;
-  if(!arOn){ arCov = null; return; }
-  arCov = document.createElement('canvas'); arCov.width = arCov.height = 176;
+  if(!arOn){ arCov = null; arCovMini = null; return; }
+  arCov = document.createElement('canvas'); arCov.width = arCov.height = AR_COV;
+  arCovMini = document.createElement('canvas'); arCovMini.width = arCovMini.height = 176;
   arTick = 0;
   $('#arMap').getContext('2d').clearRect(0,0,176,176);
+  // holographic overlay on the terrain itself: the swept path glows on the ground.
+  // Terrain plane UVs: u=(x/S+0.5), v=(0.5−z/S); with default flipY the coverage
+  // canvas maps onto the ground with the same row convention as the minimap.
+  if(world && world.ground){
+    arTex = new THREE.CanvasTexture(arCov);
+    arTex.generateMipmaps = false;
+    arTex.minFilter = THREE.LinearFilter;
+    arMesh = new THREE.Mesh(world.ground.geometry,
+      new THREE.MeshBasicMaterial({ map:arTex, transparent:true, depthWrite:false,
+        blending:THREE.AdditiveBlending, opacity:0.28 }));
+    arMesh.position.y = 0.05;
+    arMesh.renderOrder = 1;
+    scene.add(arMesh);
+  }
 }
 function updateAr(dt){
   if(!arOn || !arCov) return;
   const W = 176, S = WORLD.SIZE;
   const px = v => (v/S + 0.5)*W;
-  // stamp the swept ground (blue trail — colour-blind safe against the orange markers)
+  const pxC = v => (v/S + 0.5)*AR_COV;
+  // stamp the swept ground (blue trail — colour-blind safe against the orange markers).
+  // The painted radius mirrors the live detection radius in updateDetection
+  // (mid-depth factor 0.875), so the corridor is honest about what the coil heard.
   const cp = coilPoint();
+  const reach = (state.tools.headphones && state.loadout.includes('headphones')) ? 1.15 : 1;
+  const sweepR = (pinpoint? 0.5 : 0.95) * 0.875 * reach; // metres
   const gc = arCov.getContext('2d');
-  gc.fillStyle = 'rgba(96,164,255,0.30)';
-  gc.beginPath(); gc.arc(px(cp.x), px(cp.z), 2.2, 0, 7); gc.fill();
+  gc.fillStyle = 'rgba(58,132,255,0.32)';
+  gc.beginPath(); gc.arc(pxC(cp.x), pxC(cp.z), sweepR * (AR_COV/S), 0, 7); gc.fill();
+  // bolder companion stamp so the corner map stays readable at its small scale
+  const gm = arCovMini.getContext('2d');
+  gm.fillStyle = 'rgba(96,164,255,0.30)';
+  gm.beginPath(); gm.arc(px(cp.x), px(cp.z), 2.2, 0, 7); gm.fill();
   arTick -= dt;
   if(arTick > 0) return;
   arTick = 0.15;
+  if(arTex) arTex.needsUpdate = true;
   const g = $('#arMap').getContext('2d');
   g.fillStyle = 'rgba(9,14,12,0.92)'; g.fillRect(0,0,W,W);
   g.strokeStyle = 'rgba(255,255,255,0.07)';
@@ -1014,7 +1049,7 @@ function updateAr(dt){
     g.beginPath(); g.moveTo(W*i/4,0); g.lineTo(W*i/4,W); g.stroke();
     g.beginPath(); g.moveTo(0,W*i/4); g.lineTo(W,W*i/4); g.stroke();
   }
-  g.drawImage(arCov, 0, 0);
+  g.drawImage(arCovMini, 0, 0);
   // restricted zone ring
   const pz = SITES[state.location]._pzone;
   if(pz){
@@ -1739,6 +1774,8 @@ $('#btnHome').addEventListener('click', ()=>{
 function teardownField(){
   if(scene){ scene.traverse(o=>{ if(o.geometry) o.geometry.dispose?.(); }); }
   scene=null; world=null; npc=null; bird=null; snakeObj=null; targets=[]; coilShadow=null; coilGap=0;
+  if(arMesh){ arMesh.material.dispose(); arMesh=null; }
+  if(arTex){ arTex.dispose(); arTex=null; }
   arOn=false; arCov=null; $('#arWrap').hidden = true;
   $('#hud').hidden = true;
 }

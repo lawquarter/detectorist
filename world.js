@@ -1090,7 +1090,7 @@ function buildSite(site, scene){
                goldfields:[0x8a7440,0xb59c58], farm:null, beach:null };
   const ng = NG[site.terrain];
   if(ng) nearGrass = makeNearGrass(scene, heightAt, ng[0], ng[1], site.id.length*2654435761, site.terrain==='goldfields'? 1300 : 4600);
-  return { heightAt, sky, ocean, interactives, nearGrass,
+  return { heightAt, sky, ocean, interactives, nearGrass, ground: mesh,
     pzone: site._pzone,
     inProhibited(x,z){ const p=site._pzone; return p ? Math.hypot(x-p.x,z-p.z)<p.r : false; },
     animate(t,dt){ sky.animate(dt); if(ocean) ocean.animate(t); } };
