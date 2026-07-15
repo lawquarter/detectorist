@@ -376,6 +376,9 @@ function sellFind(src, idx){
 function loadoutSlots(){
   return state.loadout.reduce((a,id)=> a + (TOOLS[id]? TOOLS[id].slots : 0), 0);
 }
+// finds pouch grows with the backpack: base 12 at the starter 6-slot pack,
+// +1 find of room per extra pack slot (26-slot rig carries 32 finds)
+function pouchCap(){ return 6 + state.packSlots; }
 function renderKit(){
   const kd = $('#kitDetector'); kd.innerHTML='';
   DETECTOR_ORDER.filter(id=>state.owned[id]).forEach(id=>{
@@ -391,7 +394,7 @@ function renderKit(){
     card.appendChild(b); kd.appendChild(card);
   });
   const kp = $('#kitPack'); kp.innerHTML='';
-  $('#kitSlots').textContent = '('+loadoutSlots()+'/'+state.packSlots+' slots)';
+  $('#kitSlots').textContent = '('+loadoutSlots()+'/'+state.packSlots+' slots · pouch holds '+pouchCap()+' finds)';
   Object.values(TOOLS).forEach(t0=>{
     if(t0.kind==='upgrade') return;
     const has = t0.kind==='consumable' ? (state.uses[t0.id]||0)>0 : state.tools[t0.id];
@@ -434,7 +437,7 @@ function renderCollection(){
     const b = document.createElement('button'); b.className='btn'; b.textContent='TAKE IN HAND';
     b.title = 'Move it back to your pouch to sell at the dealer';
     b.onclick = ()=>{
-      if(state.pouch.length >= 12){ toast('Finds pouch is full — sell something first', 'bad'); return; }
+      if(state.pouch.length >= pouchCap()){ toast('Finds pouch is full — sell something first', 'bad'); return; }
       state.pouch.push(state.cabinet.splice(idx,1)[0]);
       save(); renderShop(); renderCollection();
       toast(f.name+' is back in your pouch — the dealer awaits');
@@ -1275,7 +1278,7 @@ function finishReveal(action){
     save(); updatePouchHud(); return;
   }
   if(action==='keep'){
-    if(state.pouch.length >= 12){ toast('Finds pouch is full!', 'bad'); }
+    if(state.pouch.length >= pouchCap()){ toast('Finds pouch is full!', 'bad'); }
     else {
       state.pouch.push({ key:t.key, name, value, site:state.location, day:state.day, trash:item.kind==='trash' });
       sessionFinds.push({name, value, kind:item.kind});
@@ -1299,7 +1302,7 @@ function finishReveal(action){
   pauseTitle('NICE DIG','Plug back in, boot flat, on to the next signal.');
 }
 function updatePouchHud(){
-  $('#hudPouch').textContent = state.pouch.length+'/12';
+  $('#hudPouch').textContent = state.pouch.length+'/'+pouchCap();
   $('#hudCash').textContent = Math.round(state.money);
 }
 
